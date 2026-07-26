@@ -16,19 +16,39 @@ const GAMMA = "https://gamma-api.polymarket.com";
 const CLOB = "https://clob.polymarket.com";
 
 const CATEGORIES = [
-  { key: "trending", tag: null, limit: 8 },
-  { key: "sports", tag: "sports", limit: 8 },
-  { key: "esports", tag: "esports", limit: 6 },
+  { key: "sports", tag: "sports", limit: 10 },
+  { key: "esports", tag: "esports", limit: 8 },
   { key: "crypto", tag: "crypto", limit: 8 },
-  { key: "politics", tag: "politics", limit: 6 },
+  { key: "politics", tag: "politics", limit: 8 },
+  { key: "geopolitics", tag: "geopolitics", limit: 8 },
+  { key: "finance", tag: "finance", limit: 8 },
+  { key: "tech", tag: "tech", limit: 8 },
+  { key: "culture", tag: "pop-culture", limit: 8 },
+];
+
+/**
+ * پلی‌مارکت یک رویداد را زیر چند تگ می‌گذارد (مثلاً مسابقه‌ی LoL هم
+ * «ورزش» است هم «ای‌اسپورتس»). هر رویداد فقط به مشخص‌ترین دسته‌ای که
+ * ادعایش را دارد تعلق می‌گیرد، وگرنه بخش‌ها تکراری می‌شوند.
+ */
+const CLAIM_ORDER = [
+  "esports",
+  "crypto",
+  "geopolitics",
+  "tech",
+  "culture",
+  "finance",
+  "politics",
+  "sports",
 ];
 
 /** چند بازارِ هر رویداد تاریخچه بگیرند */
-const HISTORY_PER_EVENT = 4;
+const HISTORY_PER_EVENT = 3;
 /** حداکثر نقطه در هر سری بعد از نمونه‌برداری */
-const HISTORY_POINTS = 70;
+const HISTORY_POINTS = 56;
 
 const num = (v) => (v == null ? 0 : Number(v) || 0);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function parseList(raw) {
   if (Array.isArray(raw)) return raw;
@@ -112,10 +132,12 @@ async function fetchHistory(tokenId) {
   if (histCache.has(tokenId)) return histCache.get(tokenId);
 
   let pts = null;
-  try {
-    const url = `${CLOB}/prices-history?market=${tokenId}&interval=1w&fidelity=60`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
-    if (res.ok) {
+  const url = `${CLOB}/prices-history?market=${tokenId}&interval=1w&fidelity=60`;
+  for (let attempt = 0; attempt < 4 && !pts; attempt++) {
+    if (attempt) await sleep(800 * 2 ** attempt);
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+      if (!res.ok) continue;
       const raw = await res.json();
       const all = Array.isArray(raw?.history) ? raw.history : [];
       if (all.length > 1) {
@@ -123,10 +145,12 @@ async function fetchHistory(tokenId) {
         pts = all
           .filter((_, i) => i % step === 0 || i === all.length - 1)
           .map((h) => [Math.round(num(h.t)), Number(num(h.p).toFixed(4))]);
+      } else {
+        break; // پاسخ درست بود ولی داده ندارد — تلاش مجدد بی‌فایده است
       }
+    } catch {
+      /* تلاش بعدی */
     }
-  } catch {
-    pts = null;
   }
   histCache.set(tokenId, pts);
   return pts;
@@ -182,8 +206,6 @@ const edge = (m) => Math.abs((m.outcomes[0]?.price ?? 0) - 0.5);
 
 /* ---------- اجرا ---------- */
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
 /** تلاش مجدد با عقب‌نشینی نمایی — Gamma گاهی ۵۰۳ می‌دهد */
 async function retry(fn, tries = 4) {
   let last;
@@ -196,6 +218,22 @@ async function retry(fn, tries = 4) {
     }
   }
   throw last;
+}
+
+/** تعداد کل بازارهای یک دسته */
+async function fetchCount(tag) {
+  try {
+    const url = new URL(`${GAMMA}/events/pagination`);
+    url.searchParams.set("limit", "1");
+    url.searchParams.set("closed", "false");
+    if (tag) url.searchParams.set("tag_slug", tag);
+    const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+    if (!res.ok) return 0;
+    const d = await res.json();
+    return Number(d?.pagination?.totalResults) || 0;
+  } catch {
+    return 0;
+  }
 }
 
 async function fetchCategory({ key, tag, limit }) {
@@ -214,8 +252,10 @@ async function fetchCategory({ key, tag, limit }) {
 
   const events = (Array.isArray(raw) ? raw : [])
     .map(normalizeEvent)
-    .filter((e) => e.markets.length > 0);
-  return [key, events];
+    .filter((e) => e.markets.length > 0)
+    .map((e) => ({ ...e, category: key }));
+  const total = await fetchCount(tag);
+  return [key, events, total];
 }
 
 // ترتیبی، نه موازی — تا ریت‌لیمیت نخوریم
@@ -227,10 +267,26 @@ for (const c of CATEGORIES) {
 
 // یکتاسازی: رویدادها یک‌بار ذخیره، دسته‌ها فقط شناسه نگه می‌دارند
 const events = new Map();
+const byKey = new Map(fetched.map(([key, list]) => [key, list]));
+const counts = Object.fromEntries(fetched.map(([key, , total]) => [key, total]));
+
+// هر رویداد فقط یک‌بار، در مشخص‌ترین دسته
+const claimed = new Set();
 const categories = {};
-for (const [key, list] of fetched) {
-  categories[key] = list.map((e) => e.id);
-  for (const e of list) if (!events.has(e.id)) events.set(e.id, e);
+for (const key of CLAIM_ORDER) {
+  const mine = [];
+  for (const e of byKey.get(key) ?? []) {
+    if (claimed.has(e.id)) continue;
+    claimed.add(e.id);
+    e.category = key;
+    events.set(e.id, e);
+    mine.push(e.id);
+    if (mine.length >= 6) break;
+  }
+  categories[key] = mine;
+}
+for (const [key, ids] of Object.entries(categories)) {
+  console.log(`  ${key.padEnd(12)} ${ids.length}`);
 }
 
 const all = [...events.values()];
@@ -252,7 +308,7 @@ for (const e of all) {
     .slice(0, HISTORY_PER_EVENT)
     .forEach((m) => jobs.push(m));
 }
-const hist = await pool(jobs, 8, (m) => fetchHistory(m.tokenIds[0]));
+const hist = await pool(jobs, 4, (m) => fetchHistory(m.tokenIds[0]));
 jobs.forEach((m, i) => {
   m.history = hist[i];
 });
@@ -264,6 +320,7 @@ const snapshot = {
   capturedAt: new Date().toISOString(),
   events: Object.fromEntries(events),
   categories,
+  counts,
 };
 const json = JSON.stringify(snapshot);
 writeFileSync("src/data/polymarket-snapshot.json", json);
