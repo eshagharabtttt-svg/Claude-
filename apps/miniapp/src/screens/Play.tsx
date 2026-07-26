@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BalancePill, Card } from "../components/ui";
+import { BalancePill } from "../components/ui";
 import { usePlayer } from "../lib/store";
 import { QuickPlay } from "./QuickPlay";
 import { StreakRun } from "./games/StreakRun";
@@ -9,60 +9,74 @@ import { Parlay } from "./games/Parlay";
 
 type Game = "quick" | "streak" | "royale" | "crash" | "parlay";
 
-const GAMES: {
+type Tile = {
   id: Game;
-  icon: string;
   name: string;
-  blurb: string;
-  tag: string;
-  tint: string;
-}[] = [
+  art: string;
+  /** headline badge painted on the art, the way arcade tiles shout a number */
+  badge: string;
+  players: number;
+  from: string;
+  to: string;
+  ink: string;
+};
+
+const TILES: Tile[] = [
   {
-    id: "quick",
-    icon: "⚡",
-    name: "Quick Play",
-    blurb: "Up or down in 30 seconds",
-    tag: "30s rounds",
-    tint: "#c6f73c",
+    id: "crash",
+    name: "Crash",
+    art: "🚀",
+    badge: "999×",
+    players: 1363,
+    from: "#7c3aed",
+    to: "#c026d3",
+    ink: "#fde68a",
   },
   {
     id: "streak",
-    icon: "🔥",
     name: "Streak Run",
-    blurb: "Climb the ladder, cash out before you miss",
-    tag: "up to ×170",
-    tint: "#f5a524",
+    art: "🔥",
+    badge: "×170",
+    players: 206,
+    from: "#ea580c",
+    to: "#f59e0b",
+    ink: "#fff7ed",
   },
   {
     id: "royale",
-    icon: "🏹",
     name: "Battle Royale",
-    blurb: "50 players, one survivor takes the pot",
-    tag: "50 players",
-    tint: "#f0616d",
+    art: "🏹",
+    badge: "50 in",
+    players: 122,
+    from: "#be123c",
+    to: "#f0616d",
+    ink: "#ffe4e6",
   },
   {
-    id: "crash",
-    icon: "🚀",
-    name: "Crash",
-    blurb: "Cash out before the rocket blows",
-    tag: "provably fair",
-    tint: "#a855f7",
+    id: "quick",
+    name: "Quick Play",
+    art: "📈",
+    badge: "30s",
+    players: 160,
+    from: "#4d7c0f",
+    to: "#a3e635",
+    ink: "#0a0a0b",
   },
   {
     id: "parlay",
-    icon: "🎫",
     name: "Parlay",
-    blurb: "Stack real event calls into one ticket",
-    tag: "combo odds",
-    tint: "#3b82f6",
+    art: "🎫",
+    badge: "combo",
+    players: 84,
+    from: "#1d4ed8",
+    to: "#38bdf8",
+    ink: "#e0f2fe",
   },
 ];
 
 export function Play() {
   const { p } = usePlayer();
   const [game, setGame] = useState<Game | null>(null);
-
   const back = () => setGame(null);
 
   if (game === "quick") return <QuickPlay onBack={back} />;
@@ -73,54 +87,86 @@ export function Play() {
 
   return (
     <div className="vscroll h-full pb-28">
-      <header className="flex items-center justify-between px-4 pt-4 pb-1">
+      <header className="flex items-center justify-between px-4 pt-4 pb-4">
         <div>
           <h1 className="text-[26px] font-extrabold leading-tight">Play</h1>
-          <p className="text-t3 text-xs mt-0.5">Pick a game</p>
+          <p className="text-t3 text-xs mt-0.5">
+            {TILES.reduce((a, t) => a + t.players, 0).toLocaleString("en-US")}{" "}
+            playing now
+          </p>
         </div>
         <BalancePill value={p.balance} />
       </header>
 
-      <div className="px-4 pt-4 space-y-3">
-        {GAMES.map((g) => (
-          <Card
-            key={g.id}
-            onClick={() => setGame(g.id)}
-            className="p-4 flex items-center gap-4 active:bg-s2 transition-colors"
-          >
-            <div
-              className="h-14 w-14 rounded-2xl flex items-center justify-center text-[26px] shrink-0"
-              style={{
-                background: `${g.tint}1f`,
-                border: `1px solid ${g.tint}44`,
-              }}
-            >
-              {g.icon}
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[16px] font-extrabold">{g.name}</span>
-                <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                  style={{ background: `${g.tint}22`, color: g.tint }}
-                >
-                  {g.tag}
-                </span>
-              </div>
-              <div className="text-[12px] text-t2 mt-1 leading-snug">
-                {g.blurb}
-              </div>
-            </div>
-
-            <span className="text-t3 text-[18px] shrink-0">›</span>
-          </Card>
+      <div className="px-3 grid grid-cols-2 gap-3">
+        {TILES.map((t) => (
+          <GameTile key={t.id} tile={t} onOpen={() => setGame(t.id)} />
         ))}
       </div>
 
-      <p className="px-4 pt-5 text-center text-[11px] text-t3 leading-relaxed">
+      <p className="px-6 pt-6 text-center text-[11px] text-t3 leading-relaxed">
         Every game settles into the same balance and the same season score.
       </p>
     </div>
+  );
+}
+
+function GameTile({ tile, onOpen }: { tile: Tile; onOpen: () => void }) {
+  return (
+    <button
+      onClick={onOpen}
+      className="relative rounded-2xl overflow-hidden aspect-[3/3.4] text-left active:scale-[.97] transition-transform"
+      style={{
+        background: `linear-gradient(150deg, ${tile.from}, ${tile.to})`,
+      }}
+    >
+      {/* soft light from the top-left, so flat gradients read as objects */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(120% 80% at 15% 0%, rgba(255,255,255,.28), transparent 60%)",
+        }}
+      />
+
+      {/* motif */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span
+          className="text-[62px] leading-none"
+          style={{ filter: "drop-shadow(0 6px 14px rgba(0,0,0,.35))" }}
+        >
+          {tile.art}
+        </span>
+      </div>
+
+      {/* headline badge */}
+      <div
+        className="absolute top-2.5 left-2.5 mono text-[15px] font-extrabold -rotate-6"
+        style={{
+          color: tile.ink,
+          textShadow: "0 2px 6px rgba(0,0,0,.4)",
+        }}
+      >
+        {tile.badge}
+      </div>
+
+      {/* name plate */}
+      <div className="absolute inset-x-0 bottom-0 pt-8 pb-2.5 px-2.5 bg-gradient-to-t from-black/75 via-black/45 to-transparent">
+        <div className="text-white font-extrabold text-[14px] uppercase tracking-wide leading-tight">
+          {tile.name}
+        </div>
+        <div className="flex items-center justify-between mt-1">
+          <span className="text-white/55 text-[8px] font-bold tracking-widest">
+            ORIGINAL
+          </span>
+          <span className="flex items-center gap-1 rounded bg-black/45 px-1.5 py-0.5">
+            <span className="text-white/60 text-[8px]">👤</span>
+            <span className="mono text-white text-[9px] font-bold">
+              {tile.players}
+            </span>
+          </span>
+        </div>
+      </div>
+    </button>
   );
 }
