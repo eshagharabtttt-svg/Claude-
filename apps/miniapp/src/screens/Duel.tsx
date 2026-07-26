@@ -327,99 +327,97 @@ export function Duel() {
     .map((s) => ({
       price: s.lock,
       color: s.side === "up" ? "#16c784" : "#f0616d",
-      title: s.side === "up" ? "▲" : "▼",
+      title: s.side === "up" ? "\u25b2" : "\u25bc",
       dashed: true,
     }));
 
+  const tone =
+    myScore === thScore ? "brand" : myScore > thScore ? "up" : "down";
+
   return (
-    <div className="vscroll h-full pb-28">
+    <div className="h-full flex flex-col pb-[68px]">
       {/* score bar */}
-      <div className="px-4 pt-4">
-        <Card className="p-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-full bg-brand/20 border border-brand/40 flex items-center justify-center text-[13px] font-bold text-brand">
-                YOU
-              </div>
-              <div>
-                <div className="text-[12px] font-bold">You</div>
-                <div className="mono text-[10px] text-t3">
-                  {accuracy(p)}% acc
-                </div>
-              </div>
+      <div className="px-4 pt-4 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-9 w-9 rounded-full bg-brand/20 border border-brand/40 flex items-center justify-center text-[10px] font-extrabold text-brand">
+              YOU
             </div>
-
-            <div className="text-center">
-              <div className="mono text-[22px] font-extrabold leading-none">
-                <span className={myScore >= thScore ? "text-up" : "text-t1"}>
-                  {myScore}
-                </span>
-                <span className="text-t3 mx-1.5">:</span>
-                <span className={thScore > myScore ? "text-down" : "text-t1"}>
-                  {thScore}
-                </span>
-              </div>
-              <div
-                className={`mono text-[11px] mt-1 font-bold ${
-                  left <= 10_000 ? "text-down" : "text-t3"
-                }`}
-              >
-                {mmss(left)}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-row-reverse">
-              <div className="h-9 w-9 rounded-full bg-s3 border border-line flex items-center justify-center text-[13px] font-bold">
-                {opp.name[0]}
-              </div>
-              <div className="text-right">
-                <div className="text-[12px] font-bold">{opp.name}</div>
-                <div className="mono text-[10px] text-t3">{opp.acc}% acc</div>
-              </div>
+            <div>
+              <div className="text-[12px] font-bold">You</div>
+              <div className="mono text-[10px] text-t3">{accuracy(p)}% acc</div>
             </div>
           </div>
-        </Card>
+
+          <div className="text-center">
+            <div className="mono text-[26px] font-extrabold leading-none">
+              <span className={myScore >= thScore ? "text-up" : "text-t1"}>
+                {myScore}
+              </span>
+              <span className="text-t3 mx-1.5">:</span>
+              <span className={thScore > myScore ? "text-down" : "text-t1"}>
+                {thScore}
+              </span>
+            </div>
+            <div
+              className={`mono text-[12px] mt-1 font-bold ${
+                left <= 10_000 ? "text-down" : "text-t3"
+              }`}
+            >
+              {mmss(left)}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="text-right">
+              <div className="text-[12px] font-bold">{opp.name}</div>
+              <div className="mono text-[10px] text-t3">{opp.acc}% acc</div>
+            </div>
+            <div className="h-9 w-9 rounded-full bg-s3 border border-line flex items-center justify-center text-[13px] font-bold">
+              {opp.name[0]}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="px-4 mt-3">
-        <Card className="overflow-hidden">
-          <div className="flex items-baseline justify-between px-4 pt-3">
-            <span className="text-[13px] font-bold">{asset}/USDT</span>
-            <span className="mono text-[22px] font-bold">
-              {fmtPrice(price, asset)}
-            </span>
-          </div>
-          <Chart asset={asset} height={190} lines={lines} />
-        </Card>
+      {/* price */}
+      <div className="flex items-baseline justify-between px-4 pt-3 shrink-0">
+        <span className="text-[12px] font-bold text-t2">{asset}/USDT</span>
+        <span className="mono text-[26px] font-bold">
+          {fmtPrice(price, asset)}
+        </span>
+      </div>
+
+      {/* chart takes the rest */}
+      <div className="flex-1 min-h-[200px]">
+        <Chart asset={asset} lines={lines} tone={tone} />
       </div>
 
       {/* shots */}
-      <div className="px-4 mt-3 grid grid-cols-2 gap-3">
+      <div className="px-4 pt-3 grid grid-cols-2 gap-3 shrink-0">
         <ShotColumn title="Your shots" shots={mine} asset={asset} own />
         <ShotColumn title={`${opp.name}\u2019s shots`} shots={theirs} asset={asset} />
       </div>
 
       {/* fire buttons */}
-      <div className="px-4 mt-4 grid grid-cols-2 gap-3">
+      <div className="px-4 pt-3 grid grid-cols-2 gap-3 shrink-0">
         <button
           disabled={!canFire}
           onClick={() => fire("up")}
-          className="h-[76px] rounded-2xl border-2 border-up/40 bg-up/10 active:bg-up/25 disabled:opacity-30 flex flex-col items-center justify-center"
+          className="h-[62px] rounded-2xl border border-up/40 bg-up/15 text-up active:bg-up/30 disabled:opacity-30 flex items-center justify-center gap-2 font-extrabold text-[16px]"
         >
-          <span className="text-up text-[20px] leading-none">▲</span>
-          <span className="text-up font-extrabold text-[16px] mt-1">FIRE UP</span>
+          <span className="text-[18px]">↑</span> FIRE UP
         </button>
         <button
           disabled={!canFire}
           onClick={() => fire("down")}
-          className="h-[76px] rounded-2xl border-2 border-down/40 bg-down/10 active:bg-down/25 disabled:opacity-30 flex flex-col items-center justify-center"
+          className="h-[62px] rounded-2xl border border-down/40 bg-down/15 text-down active:bg-down/30 disabled:opacity-30 flex items-center justify-center gap-2 font-extrabold text-[16px]"
         >
-          <span className="text-down text-[20px] leading-none">▼</span>
-          <span className="text-down font-extrabold text-[16px] mt-1">FIRE DOWN</span>
+          <span className="text-[18px]">↓</span> FIRE DOWN
         </button>
       </div>
 
-      <div className="text-center text-[12px] text-t3 mt-3 px-4">
+      <div className="text-center text-[11px] text-t3 pt-2 pb-1 shrink-0">
         {mine.length >= SHOTS
           ? "Out of shots — waiting for settlement"
           : `${SHOTS - mine.length} shots left · 15s each`}
@@ -440,23 +438,23 @@ function ShotColumn({
   own?: boolean;
 }) {
   return (
-    <Card className="p-3">
-      <div className="text-[11px] text-t3 mb-2">{title}</div>
-      <div className="space-y-1.5">
+    <Card className="p-2.5">
+      <div className="text-[10px] text-t3 mb-1.5 truncate">{title}</div>
+      <div className="space-y-1">
         {Array.from({ length: SHOTS }).map((_, i) => {
           const s = shots[i];
           if (!s)
             return (
               <div
                 key={i}
-                className="h-8 rounded-lg border border-dashed border-line"
+                className="h-7 rounded-lg border border-dashed border-line"
               />
             );
           const pending = s.close === undefined;
           return (
             <div
               key={s.id}
-              className={`h-8 rounded-lg px-2 flex items-center justify-between ${
+              className={`h-7 rounded-lg px-2 flex items-center justify-between ${
                 pending ? "bg-s2" : (s.points ?? 0) >= 0 ? "bg-up/12" : "bg-down/12"
               }`}
             >

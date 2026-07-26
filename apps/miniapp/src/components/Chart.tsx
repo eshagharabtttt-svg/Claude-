@@ -91,8 +91,21 @@ export function Chart({
     });
 
     const feed = getFeed(asset);
-    const seed = () =>
-      s.setData(feed.history().map((t) => toPoint(t.t, t.p)));
+    const seed = () => {
+      // Defensive: setData() throws on repeated timestamps, and a feed
+      // that ever emits faster than the chart's resolution would produce
+      // them. Keep the last sample of each second.
+      const out: { time: UTCTimestamp; value: number }[] = [];
+      for (const t of feed.history()) {
+        const pt = toPoint(t.t, t.p);
+        if (out.length && out[out.length - 1].time === pt.time) {
+          out[out.length - 1] = pt;
+        } else {
+          out.push(pt);
+        }
+      }
+      s.setData(out);
+    };
     seed();
     c.timeScale().fitContent();
 
