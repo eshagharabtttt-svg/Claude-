@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "snapshot": "node scripts/snapshot-polymarket.mjs"
   },
   "dependencies": {
     "lightweight-charts": "^4.2.3",

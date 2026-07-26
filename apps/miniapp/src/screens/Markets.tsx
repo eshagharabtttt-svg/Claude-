@@ -1,146 +1,169 @@
-import { useState } from "react";
-import { BalancePill, Card, Chip, LiveBadge, SectionTitle } from "../components/ui";
+import { useEffect, useState } from "react";
+import { BalancePill, Card, Chip } from "../components/ui";
+import { MarketDetail } from "./MarketDetail";
+import {
+  CATEGORIES,
+  featuredMarket,
+  fetchLive,
+  fmtMult,
+  fmtUsd,
+  getSnapshot,
+  outcomeLabel,
+  timeLeft,
+  type Category,
+  type PMEvent,
+  type Source,
+} from "../lib/polymarket";
 import { usePlayer } from "../lib/store";
-
-const CATS = ["ترند", "فوتبال", "کریپتو", "ای‌اسپورتس", "رویداد"];
-
-const LIVE = [
-  {
-    league: "لیگ برتر",
-    home: "پرسپولیس",
-    away: "استقلال",
-    score: "1 - 0",
-    minute: "۶۷'",
-    q: "۱۰ دقیقه‌ی بعد گل می‌شود؟",
-    yes: 38,
-    no: 62,
-  },
-  {
-    league: "لالیگا",
-    home: "رئال",
-    away: "بارسا",
-    score: "2 - 2",
-    minute: "۸۱'",
-    q: "کرنر بعدی مال رئال است؟",
-    yes: 54,
-    no: 46,
-  },
-];
-
-const MARKETS = [
-  { cat: "فوتبال", title: "قهرمان لیگ برتر ۱۴۰۵", opt: "پرسپولیس", pct: 43, vol: "۸۲۰K" },
-  { cat: "کریپتو", title: "قیمت اتریوم تا پایان ماه بالای ۳٬۵۰۰ دلار", opt: "بله", pct: 27, vol: "۱.۲M" },
-  { cat: "رویداد", title: "قیمت دلار تا پایان هفته زیر ۹۰ هزار", opt: "بله", pct: 61, vol: "۴۴۰K" },
-  { cat: "ای‌اسپورتس", title: "برنده‌ی BLAST Bounty — Spirit", opt: "بله", pct: 68, vol: "۵۶۴K" },
-];
 
 export function Markets() {
   const { p } = usePlayer();
-  const [cat, setCat] = useState(CATS[0]);
+  const [cat, setCat] = useState<Category>("trending");
+  const [events, setEvents] = useState<PMEvent[]>(() => getSnapshot("trending"));
+  const [source, setSource] = useState<Source>("snapshot");
+  const [refreshing, setRefreshing] = useState(true);
+  const [open, setOpen] = useState<PMEvent | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setEvents(getSnapshot(cat));
+    setSource("snapshot");
+    setRefreshing(true);
+    fetchLive(cat).then((live) => {
+      if (!alive) return;
+      if (live) {
+        setEvents(live);
+        setSource("live");
+      }
+      setRefreshing(false);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [cat]);
+
+  if (open) return <MarketDetail event={open} onBack={() => setOpen(null)} />;
 
   return (
     <div className="vscroll h-full pb-28">
       <header className="flex items-center justify-between px-4 pt-4 pb-3">
-        <h1 className="text-[26px] font-extrabold">بازارها</h1>
+        <div>
+          <h1 className="text-[26px] font-extrabold leading-tight">بازارها</h1>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                refreshing ? "bg-warn live-dot" : source === "live" ? "bg-up" : "bg-t3"
+              }`}
+            />
+            <span className="text-t3 text-[11px]">
+              داده از Polymarket ·{" "}
+              {refreshing
+                ? "در حال تازه‌سازی"
+                : source === "live"
+                  ? "زنده"
+                  : "ذخیره‌شده"}
+            </span>
+          </div>
+        </div>
         <BalancePill value={p.balance} />
       </header>
 
-      <div className="hscroll flex gap-2 px-4 pb-3">
-        {CATS.map((c) => (
-          <Chip key={c} active={c === cat} onClick={() => setCat(c)}>
-            {c}
+      <div className="hscroll flex gap-2 px-4 pb-4">
+        {CATEGORIES.map((c) => (
+          <Chip key={c.key} active={c.key === cat} onClick={() => setCat(c.key)}>
+            {c.label}
           </Chip>
         ))}
       </div>
 
-      <div className="px-4">
-        <div className="flex items-center gap-2 rounded-2xl bg-s2 border border-line h-12 px-4">
-          <span className="text-t3">⌕</span>
-          <span className="text-t3 text-[14px]">جست‌وجوی بازار…</span>
-        </div>
-      </div>
+      <div className="px-4 space-y-3">
+        {events.map((e) => (
+          <EventCard key={e.id} event={e} onOpen={() => setOpen(e)} />
+        ))}
 
-      {/* زنده */}
-      <div className="px-4">
-        <SectionTitle action={<LiveBadge />}>در حال پخش</SectionTitle>
-      </div>
-      <div className="hscroll flex gap-3 px-4">
-        {LIVE.map((m, i) => (
-          <Card key={i} className="p-4 min-w-[300px]">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-t3">{m.league}</span>
-              <span className="text-[11px] text-live font-bold mono">{m.minute}</span>
-            </div>
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-[14px] font-bold">{m.home}</span>
-              <span className="mono text-[20px] font-extrabold">{m.score}</span>
-              <span className="text-[14px] font-bold">{m.away}</span>
-            </div>
-            <div className="mt-4 rounded-xl bg-s2 p-3">
-              <div className="text-[13px] font-semibold mb-2.5">{m.q}</div>
-              <div className="grid grid-cols-2 gap-2">
-                <button className="h-11 rounded-xl bg-up/12 border border-up/35 active:bg-up/25">
-                  <span className="text-up text-[13px] font-bold">بله</span>
-                  <span className="mono text-up/70 text-[11px] mr-1.5">
-                    {m.yes}%
-                  </span>
-                </button>
-                <button className="h-11 rounded-xl bg-down/12 border border-down/35 active:bg-down/25">
-                  <span className="text-down text-[13px] font-bold">خیر</span>
-                  <span className="mono text-down/70 text-[11px] mr-1.5">
-                    {m.no}%
-                  </span>
-                </button>
-              </div>
+        {events.length === 0 && (
+          <Card className="p-8 text-center">
+            <div className="text-[32px]">🗂</div>
+            <div className="text-[14px] text-t2 mt-2">
+              بازاری در این دسته پیدا نشد
             </div>
           </Card>
-        ))}
-      </div>
-
-      {/* بازارها */}
-      <div className="px-4">
-        <SectionTitle
-          action={<span className="text-[12px] text-t3 mono">۵۰۸ بازار</span>}
-        >
-          همه‌ی بازارها
-        </SectionTitle>
-        <div className="space-y-2">
-          {MARKETS.map((m, i) => (
-            <Card key={i} className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <span className="text-[10px] text-t3 bg-s2 rounded-md px-2 py-0.5">
-                    {m.cat}
-                  </span>
-                  <div className="text-[14px] font-semibold mt-2 leading-snug">
-                    {m.title}
-                  </div>
-                  <div className="mono text-[11px] text-t3 mt-1.5">
-                    حجم {m.vol} ◈
-                  </div>
-                </div>
-                <div className="text-center shrink-0">
-                  <div className="mono text-[22px] font-extrabold text-brand">
-                    {m.pct}%
-                  </div>
-                  <div className="text-[10px] text-t3">{m.opt}</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                <button className="h-10 rounded-xl bg-up/12 border border-up/35 text-up text-[13px] font-bold active:bg-up/25">
-                  بله <span className="mono opacity-70">×{(100 / m.pct).toFixed(2)}</span>
-                </button>
-                <button className="h-10 rounded-xl bg-down/12 border border-down/35 text-down text-[13px] font-bold active:bg-down/25">
-                  خیر{" "}
-                  <span className="mono opacity-70">
-                    ×{(100 / (100 - m.pct)).toFixed(2)}
-                  </span>
-                </button>
-              </div>
-            </Card>
-          ))}
-        </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function EventCard({ event, onOpen }: { event: PMEvent; onOpen: () => void }) {
+  const top = featuredMarket(event.markets);
+  const left = timeLeft(event.endDate);
+
+  return (
+    <Card className="p-4" onClick={onOpen}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1.5">
+            {event.live && (
+              <span className="flex items-center gap-1 rounded-full bg-live/15 px-2 py-0.5">
+                <span className="live-dot h-1 w-1 rounded-full bg-live" />
+                <span className="text-live text-[9px] font-bold">LIVE</span>
+              </span>
+            )}
+            <span className="text-[10px] text-t3">
+              <span dir="ltr" className="mono">
+                {fmtUsd(event.volume24h)}
+              </span>{" "}
+              · ۲۴س
+            </span>
+            {left && <span className="text-[10px] text-t3">· {left}</span>}
+          </div>
+          <div
+            dir="auto"
+            className="text-[15px] font-bold leading-snug line-clamp-2"
+          >
+            {event.title}
+          </div>
+        </div>
+        <div className="text-t3 text-[16px] shrink-0">‹</div>
+      </div>
+
+      {top && (
+        <div className="mt-3 rounded-xl bg-s2 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span dir="auto" className="text-[12px] text-t2 truncate">
+              {top.label ?? top.question}
+            </span>
+            <span className="mono text-[13px] font-bold text-brand shrink-0 ms-2">
+              {Math.round(top.outcomes[0].price * 100)}%
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {top.outcomes.slice(0, 2).map((o, i) => (
+              <div
+                key={o.name}
+                className={`h-10 rounded-lg flex items-center justify-center gap-1.5 px-2 text-[12px] font-bold truncate ${
+                  i === 0
+                    ? "bg-up/12 border border-up/30 text-up"
+                    : "bg-down/12 border border-down/30 text-down"
+                }`}
+              >
+                <span dir="auto" className="truncate">
+                  {outcomeLabel(o.name)}
+                </span>
+                <span className="mono opacity-70 shrink-0">
+                  {fmtMult(o.price)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {event.markets.length > 1 && (
+        <div className="text-[11px] text-t3 mt-2.5 text-center">
+          + {event.markets.length - 1} نتیجه‌ی دیگر
+        </div>
+      )}
+    </Card>
   );
 }
