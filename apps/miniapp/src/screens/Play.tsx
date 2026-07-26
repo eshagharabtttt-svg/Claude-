@@ -6,8 +6,9 @@ import { StreakRun } from "./games/StreakRun";
 import { Royale } from "./games/Royale";
 import { Crash } from "./games/Crash";
 import { Parlay } from "./games/Parlay";
+import { Hokm } from "./games/Hokm";
 
-type Game = "quick" | "streak" | "royale" | "crash" | "parlay";
+type Game = "quick" | "streak" | "royale" | "crash" | "parlay" | "hokm";
 
 type Tile = {
   id: Game;
@@ -63,6 +64,16 @@ const TILES: Tile[] = [
     ink: "#0a0a0b",
   },
   {
+    id: "hokm",
+    name: "Hokm",
+    art: "🃏",
+    badge: "2v2",
+    players: 341,
+    from: "#065f46",
+    to: "#10b981",
+    ink: "#ecfdf5",
+  },
+  {
     id: "parlay",
     name: "Parlay",
     art: "🎫",
@@ -84,6 +95,7 @@ export function Play() {
   if (game === "royale") return <Royale onBack={back} />;
   if (game === "crash") return <Crash onBack={back} />;
   if (game === "parlay") return <Parlay onBack={back} />;
+  if (game === "hokm") return <Hokm onBack={back} />;
 
   return (
     <div className="vscroll h-full pb-28">
