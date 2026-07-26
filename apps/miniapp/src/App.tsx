@@ -4,16 +4,16 @@ import { Home } from "./screens/Home";
 import { QuickPlay } from "./screens/QuickPlay";
 import { Duel } from "./screens/Duel";
 import { Markets } from "./screens/Markets";
-import { Profile } from "./screens/Profile";
+import { Tasks } from "./screens/Tasks";
 
-export type Tab = "home" | "play" | "duel" | "markets" | "profile";
+export type Tab = "home" | "play" | "duel" | "markets" | "tasks";
 
 const NAV: { id: Tab; icon: string; label: string }[] = [
   { id: "home", icon: "⌂", label: "Home" },
   { id: "play", icon: "⚡", label: "Play" },
   { id: "duel", icon: "⚔", label: "Duel" },
   { id: "markets", icon: "◎", label: "Markets" },
-  { id: "profile", icon: "◉", label: "Profile" },
+  { id: "tasks", icon: "✓", label: "Tasks" },
 ];
 
 export default function App() {
@@ -26,7 +26,7 @@ export default function App() {
         {tab === "play" && <QuickPlay />}
         {tab === "duel" && <Duel />}
         {tab === "markets" && <Markets />}
-        {tab === "profile" && <Profile />}
+        {tab === "tasks" && <Tasks />}
 
         <nav className="absolute bottom-0 inset-x-0 h-[68px] bg-s1/95 backdrop-blur border-t border-line flex items-center px-2">
           {NAV.map((n) => {
