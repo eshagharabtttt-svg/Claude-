@@ -7,8 +7,9 @@ import { Royale } from "./games/Royale";
 import { Crash } from "./games/Crash";
 import { Parlay } from "./games/Parlay";
 import { Hokm } from "./games/Hokm";
+import { Dice } from "./games/Dice";
 
-type Game = "quick" | "streak" | "royale" | "crash" | "parlay" | "hokm";
+type Game = "quick" | "streak" | "royale" | "crash" | "parlay" | "hokm" | "dice";
 
 type Tile = {
   id: Game;
@@ -74,6 +75,16 @@ const TILES: Tile[] = [
     ink: "#ecfdf5",
   },
   {
+    id: "dice",
+    name: "Dice",
+    art: "🎲",
+    badge: "49.5×",
+    players: 512,
+    from: "#0f766e",
+    to: "#2dd4bf",
+    ink: "#ccfbf1",
+  },
+  {
     id: "parlay",
     name: "Parlay",
     art: "🎫",
@@ -96,6 +107,7 @@ export function Play() {
   if (game === "crash") return <Crash onBack={back} />;
   if (game === "parlay") return <Parlay onBack={back} />;
   if (game === "hokm") return <Hokm onBack={back} />;
+  if (game === "dice") return <Dice onBack={back} />;
 
   return (
     <div className="vscroll h-full pb-28">
