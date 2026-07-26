@@ -13,8 +13,9 @@ import { Wheel } from "./games/Wheel";
 import { Mines } from "./games/Mines";
 import { Plinko } from "./games/Plinko";
 import { Ludo } from "./games/Ludo";
+import { Chess } from "./games/Chess";
 
-type Game = "quick" | "streak" | "royale" | "crash" | "parlay" | "hokm" | "dice" | "limbo" | "wheel" | "mines" | "plinko" | "ludo";
+type Game = "quick" | "streak" | "royale" | "crash" | "parlay" | "hokm" | "dice" | "limbo" | "wheel" | "mines" | "plinko" | "ludo" | "chess";
 
 type Tile = {
   id: Game;
@@ -140,6 +141,16 @@ const TILES: Tile[] = [
     ink: "#fff7ed",
   },
   {
+    id: "chess",
+    name: "Chess",
+    art: "♞",
+    badge: "vs engine",
+    players: 612,
+    from: "#3f3f46",
+    to: "#a1a1aa",
+    ink: "#18181b",
+  },
+  {
     id: "parlay",
     name: "Parlay",
     art: "🎫",
@@ -168,6 +179,7 @@ export function Play() {
   if (game === "mines") return <Mines onBack={back} />;
   if (game === "plinko") return <Plinko onBack={back} />;
   if (game === "ludo") return <Ludo onBack={back} />;
+  if (game === "chess") return <Chess onBack={back} />;
 
   return (
     <div className="vscroll h-full pb-28">

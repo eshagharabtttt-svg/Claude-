@@ -113,9 +113,20 @@ export function Ludo({ onBack }: { onBack: () => void }) {
     observer.current = null;
     if (!el) return;
     // the two name-plate rows sit inside this box, so the board gets what
-    // is left rather than floating in the middle of the gap
-    const measure = () =>
-      setSize(Math.min(el.clientWidth, el.clientHeight - SEAT_ROWS));
+    // is left. clientWidth counts padding, which would otherwise let the
+    // board grow wider than the plates it sits between.
+    const measure = () => {
+      const cs = getComputedStyle(el);
+      const w =
+        el.clientWidth -
+        parseFloat(cs.paddingLeft) -
+        parseFloat(cs.paddingRight);
+      const h =
+        el.clientHeight -
+        parseFloat(cs.paddingTop) -
+        parseFloat(cs.paddingBottom);
+      setSize(Math.max(0, Math.min(w, h - SEAT_ROWS)));
+    };
     measure();
     observer.current = new ResizeObserver(measure);
     observer.current.observe(el);
