@@ -52,7 +52,7 @@ export function Home({ go }: { go: (t: Tab) => void }) {
 
       <div className="px-4 mt-6 grid grid-cols-2 gap-3">
         <Button size="lg" onClick={() => go("play")}>
-          ⚡ Quick Play
+          ⚡ Play
         </Button>
         <Button size="lg" variant="surface" onClick={() => go("duel")}>
           ⚔️ Duel

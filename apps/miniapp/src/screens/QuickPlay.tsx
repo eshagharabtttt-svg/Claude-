@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chart, type Marker } from "../components/Chart";
 import { BalancePill } from "../components/ui";
+import { GameHeader } from "./games/GameHeader";
 import { fmtPrice, getFeed, mmss, type AssetId } from "../lib/feed";
 import { usePlayer } from "../lib/store";
 
@@ -34,7 +35,7 @@ function buzz(ms: number | number[]) {
   }
 }
 
-export function QuickPlay() {
+export function QuickPlay({ onBack }: { onBack: () => void }) {
   const { p, credit, spendEnergy, recordResult } = usePlayer();
   const [asset, setAsset] = useState<AssetId>("ETH");
   const [phase, setPhase] = useState<Phase>("betting");
@@ -173,25 +174,23 @@ export function QuickPlay() {
 
   return (
     <div className="h-full flex flex-col pb-[68px]">
-      {/* header */}
-      <header className="flex items-center justify-between px-4 pt-4 pb-3 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="hscroll flex gap-1.5">
-            {ASSETS.map((a) => (
-              <button
-                key={a}
-                onClick={() => setAsset(a)}
-                className={`shrink-0 h-8 px-3 rounded-lg text-[12px] font-bold transition-colors ${
-                  a === asset ? "bg-t1 text-bg" : "bg-s2 text-t3"
-                }`}
-              >
-                {a}
-              </button>
-            ))}
-          </div>
-        </div>
+      <GameHeader title="Quick Play" onBack={onBack}>
         <BalancePill value={p.balance} />
-      </header>
+      </GameHeader>
+
+      <div className="hscroll flex gap-1.5 px-4 pb-2 shrink-0">
+        {ASSETS.map((a) => (
+          <button
+            key={a}
+            onClick={() => setAsset(a)}
+            className={`shrink-0 h-8 px-3 rounded-lg text-[12px] font-bold transition-colors ${
+              a === asset ? "bg-t1 text-bg" : "bg-s2 text-t3"
+            }`}
+          >
+            {a}
+          </button>
+        ))}
+      </div>
 
       {/* price + timer */}
       <div className="flex items-end justify-between px-4 pb-2 shrink-0">

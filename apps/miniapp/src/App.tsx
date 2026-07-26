@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PlayerProvider } from "./lib/store";
 import { Home } from "./screens/Home";
-import { QuickPlay } from "./screens/QuickPlay";
+import { Play } from "./screens/Play";
 import { Duel } from "./screens/Duel";
 import { Markets } from "./screens/Markets";
 import { Tasks } from "./screens/Tasks";
@@ -18,14 +18,22 @@ const NAV: { id: Tab; icon: string; label: string }[] = [
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("home");
+  // Tapping the active tab should return it to its root screen, the way
+  // every native tab bar behaves. Bumping the key remounts the section.
+  const [resetSeq, setResetSeq] = useState(0);
+
+  const select = (next: Tab) => {
+    if (next === tab) setResetSeq((n) => n + 1);
+    setTab(next);
+  };
 
   return (
     <PlayerProvider>
       <div className="mx-auto h-full max-w-[480px] relative bg-bg">
-        {tab === "home" && <Home go={setTab} />}
-        {tab === "play" && <QuickPlay />}
-        {tab === "duel" && <Duel />}
-        {tab === "markets" && <Markets />}
+        {tab === "home" && <Home go={select} />}
+        {tab === "play" && <Play key={resetSeq} />}
+        {tab === "duel" && <Duel key={resetSeq} />}
+        {tab === "markets" && <Markets key={resetSeq} />}
         {tab === "tasks" && <Tasks />}
 
         <nav className="absolute bottom-0 inset-x-0 h-[68px] bg-s1/95 backdrop-blur border-t border-line flex items-center px-2">
@@ -34,7 +42,7 @@ export default function App() {
             return (
               <button
                 key={n.id}
-                onClick={() => setTab(n.id)}
+                onClick={() => select(n.id)}
                 className="flex-1 flex flex-col items-center gap-1 py-2"
               >
                 <span
