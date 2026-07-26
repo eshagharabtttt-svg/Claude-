@@ -120,3 +120,14 @@ button {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* A ludo piece you are allowed to move breathes in place */
+@keyframes ludobob {
+  0%,
+  100% {
+    transform: translateY(-8%);
+  }
+  50% {
+    transform: translateY(-20%);
+  }
+}

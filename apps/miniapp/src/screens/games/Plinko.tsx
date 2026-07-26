@@ -7,7 +7,8 @@ import { GameHeader } from "./GameHeader";
 const STAKES = [50, 100, 250, 500];
 const ROW_OPTIONS = [8, 12, 16];
 const RTP = 0.95;
-const HOP_MS = 105;
+/** Time to cross one row of pegs — slow enough to actually watch the fall */
+const HOP_MS = 185;
 
 type Risk = "low" | "medium" | "high";
 
