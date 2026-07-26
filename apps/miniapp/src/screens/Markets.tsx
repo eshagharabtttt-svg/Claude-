@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BalancePill, Card, Chip } from "../components/ui";
+import { EventIcon } from "../components/EventIcon";
 import { MarketDetail } from "./MarketDetail";
 import {
   CATEGORIES,
@@ -96,11 +97,14 @@ export function Markets() {
 
 function EventCard({ event, onOpen }: { event: PMEvent; onOpen: () => void }) {
   const top = featuredMarket(event.markets);
+  // بازاری که تقریباً حل شده (۹۵٪ به ۵٪) دکمه‌ی شرط نمی‌گیرد
+  const settled = !!top && Math.abs((top.outcomes[0]?.price ?? 0) - 0.5) > 0.45;
   const left = timeLeft(event.endDate);
 
   return (
     <Card className="p-4" onClick={onOpen}>
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start gap-3">
+        <EventIcon src={event.icon} name={event.title} size={44} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
             {event.live && (
@@ -124,10 +128,19 @@ function EventCard({ event, onOpen }: { event: PMEvent; onOpen: () => void }) {
             {event.title}
           </div>
         </div>
-        <div className="text-t3 text-[16px] shrink-0">‹</div>
+        <div className="text-t3 text-[16px] shrink-0 self-center">‹</div>
       </div>
 
-      {top && (
+      {top && settled && (
+        <div className="mt-3 rounded-xl bg-s2 px-3 py-3.5 flex items-center justify-center gap-2">
+          <span className="text-t3 text-[13px]">◷</span>
+          <span className="text-t3 text-[12px]">
+            نتیجه تقریباً مشخص شده — در انتظار حل‌وفصل
+          </span>
+        </div>
+      )}
+
+      {top && !settled && (
         <div className="mt-3 rounded-xl bg-s2 p-3">
           <div className="flex items-center justify-between mb-2">
             <span dir="auto" className="text-[12px] text-t2 truncate">
@@ -159,7 +172,7 @@ function EventCard({ event, onOpen }: { event: PMEvent; onOpen: () => void }) {
         </div>
       )}
 
-      {event.markets.length > 1 && (
+      {event.markets.length > 1 && !settled && (
         <div className="text-[11px] text-t3 mt-2.5 text-center">
           + {event.markets.length - 1} نتیجه‌ی دیگر
         </div>

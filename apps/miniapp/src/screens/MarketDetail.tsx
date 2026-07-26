@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BalancePill, Button, Card } from "../components/ui";
+import { EventIcon } from "../components/EventIcon";
+import { ProbabilityChart, type Series } from "../components/ProbabilityChart";
 import {
   fmtDate,
   fmtMult,
   fmtUsd,
+  loadHistory,
+  localHistory,
   outcomeLabel,
   sortByCompetitiveness,
   timeLeft,
@@ -32,6 +36,39 @@ export function MarketDetail({
 
   const left = timeLeft(event.endDate);
   const markets = sortByCompetitiveness(event.markets);
+
+  // فوری از اسنپ‌شات، بعد در پس‌زمینه با داده‌ی زنده جایگزین می‌شود
+  const [series, setSeries] = useState<Series[]>(() =>
+    markets
+      .slice(0, 5)
+      .map((m) => {
+        const points = localHistory(m.id);
+        return points && points.length > 1
+          ? { label: m.label ?? m.question, points }
+          : null;
+      })
+      .filter((x): x is Series => x !== null)
+  );
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all(
+      markets.slice(0, 5).map((m) =>
+        loadHistory(m.id, m.tokenIds[0]).then((points) =>
+          points && points.length > 1
+            ? { label: m.label ?? m.question, points }
+            : null
+        )
+      )
+    ).then((r) => {
+      const next = r.filter((x): x is Series => x !== null);
+      if (alive && next.length) setSeries(next);
+    });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event.id]);
 
   const confirm = () => {
     if (!pick || p.balance < stake) return;
@@ -67,13 +104,27 @@ export function MarketDetail({
           {left && <span className="text-t3 text-[11px]">· {left} مانده</span>}
         </div>
 
-        <h1 dir="auto" className="text-[21px] font-extrabold leading-snug">
-          {event.title}
-        </h1>
-        <p className="text-t3 text-[12px] mt-1.5">
-          حل‌وفصل در {fmtDate(event.endDate)}
-        </p>
+        <div className="flex items-start gap-3">
+          <EventIcon src={event.icon} name={event.title} size={52} />
+          <div className="flex-1 min-w-0">
+            <h1 dir="auto" className="text-[19px] font-extrabold leading-snug">
+              {event.title}
+            </h1>
+            <p className="text-t3 text-[12px] mt-1">
+              حل‌وفصل در {fmtDate(event.endDate)}
+            </p>
+          </div>
+        </div>
       </div>
+
+      {/* چارت احتمال */}
+      {series.length > 0 && (
+        <div className="px-4 mt-4">
+          <Card className="py-3 overflow-hidden">
+            <ProbabilityChart series={series} />
+          </Card>
+        </div>
+      )}
 
       {/* آمار */}
       <div className="px-4 mt-4">
@@ -94,6 +145,7 @@ export function MarketDetail({
             return (
               <Card key={m.id} className="p-3.5">
                 <div className="flex items-start justify-between gap-3">
+                  <EventIcon src={event.icon} name={m.label ?? m.question} size={34} />
                   <div className="flex-1 min-w-0">
                     <div dir="auto" className="text-[14px] font-semibold leading-snug">
                       {m.label ?? m.question}
