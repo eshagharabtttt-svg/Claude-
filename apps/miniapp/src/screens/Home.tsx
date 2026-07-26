@@ -4,10 +4,17 @@ import { accuracy, usePlayer } from "../lib/store";
 import type { Tab } from "../App";
 
 const TASKS = [
-  { id: 1, icon: "📣", title: "عضویت در کانال", reward: 200, done: true },
-  { id: 2, icon: "🎯", title: "۳ پیش‌بینی درست بزن", reward: 350, done: false, prog: "۱/۳" },
-  { id: 3, icon: "⚔️", title: "یک دوئل ببر", reward: 500, done: false },
-  { id: 4, icon: "👥", title: "دعوت یک دوست فعال", reward: 800, done: false },
+  { id: 1, icon: "📣", title: "Join the channel", reward: 200, done: true },
+  {
+    id: 2,
+    icon: "🎯",
+    title: "Make 3 correct predictions",
+    reward: 350,
+    done: false,
+    prog: "1/3",
+  },
+  { id: 3, icon: "⚔️", title: "Win a duel", reward: 500, done: false },
+  { id: 4, icon: "👥", title: "Invite an active friend", reward: 800, done: false },
 ];
 
 export function Home({ go }: { go: (t: Tab) => void }) {
@@ -19,11 +26,11 @@ export function Home({ go }: { go: (t: Tab) => void }) {
       <header className="flex items-center justify-between px-4 pt-4">
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-full bg-brand/20 border-2 border-brand/50 flex items-center justify-center text-brand font-bold">
-            ب
+            P
           </div>
           <div>
             <div className="text-[15px] font-bold">{p.name}</div>
-            <div className="mono text-[11px] text-t3">Elo {p.elo} · رتبه ۲۴۷</div>
+            <div className="mono text-[11px] text-t3">Elo {p.elo} · Rank 247</div>
           </div>
         </div>
         <button className="h-9 w-9 rounded-full bg-s2 border border-line text-t2">
@@ -31,21 +38,22 @@ export function Home({ go }: { go: (t: Tab) => void }) {
         </button>
       </header>
 
-      {/* موجودی */}
+      {/* balance */}
       <div className="px-4 mt-5 text-center">
-        <div className="text-[12px] text-t2">موجودی توکن</div>
+        <div className="text-[12px] text-t2">Token balance</div>
         <div className="mono text-[46px] font-extrabold leading-none mt-1 text-brand">
           {Math.round(p.balance).toLocaleString("en-US")}
         </div>
         <div className="text-[11px] text-t3 mt-1.5">
-          امتیاز فصل ۱ · <span className="mono">{p.points.toLocaleString("en-US")}</span>
+          Season 1 score ·{" "}
+          <span className="mono">{p.points.toLocaleString("en-US")}</span>
         </div>
       </div>
 
-      {/* انرژی */}
+      {/* energy */}
       <div className="px-4 mt-5">
         <div className="flex items-center justify-between text-[11px] mb-1.5">
-          <span className="text-t2">⚡ انرژی</span>
+          <span className="text-t2">⚡ Energy</span>
           <span className="mono text-t3">
             {p.energy}/{p.energyMax}
           </span>
@@ -60,40 +68,43 @@ export function Home({ go }: { go: (t: Tab) => void }) {
 
       <div className="px-4 mt-5 grid grid-cols-2 gap-3">
         <Button size="lg" onClick={() => go("play")}>
-          ⚡ بازی سریع
+          ⚡ Quick Play
         </Button>
         <Button size="lg" variant="surface" onClick={() => go("duel")}>
-          ⚔️ دوئل
+          ⚔️ Duel
         </Button>
       </div>
 
-      {/* آمار */}
+      {/* stats */}
       <div className="px-4 mt-4">
         <Card className="p-4 flex">
           <div className="flex-1 text-center">
             <div className="mono text-[20px] font-bold text-brand">
               {accuracy(p)}%
             </div>
-            <div className="text-[11px] text-t3 mt-0.5">دقت</div>
+            <div className="text-[11px] text-t3 mt-0.5">Accuracy</div>
           </div>
           <div className="w-px bg-line" />
           <div className="flex-1 text-center">
             <div className="mono text-[20px] font-bold">
-              {p.wins}<span className="text-t3 text-[14px]">/{p.wins + p.losses}</span>
+              {p.wins}
+              <span className="text-t3 text-[14px]">/{p.wins + p.losses}</span>
             </div>
-            <div className="text-[11px] text-t3 mt-0.5">برد</div>
+            <div className="text-[11px] text-t3 mt-0.5">Wins</div>
           </div>
           <div className="w-px bg-line" />
           <div className="flex-1 text-center">
-            <div className="mono text-[20px] font-bold text-warn">🔥 {p.streak}</div>
-            <div className="text-[11px] text-t3 mt-0.5">استریک</div>
+            <div className="mono text-[20px] font-bold text-warn">
+              🔥 {p.streak}
+            </div>
+            <div className="text-[11px] text-t3 mt-0.5">Streak</div>
           </div>
         </Card>
       </div>
 
-      {/* جایزه‌ی روزانه */}
+      {/* daily reward */}
       <div className="px-4">
-        <SectionTitle>جایزه‌ی روزانه</SectionTitle>
+        <SectionTitle>Daily reward</SectionTitle>
         <Card className="p-4">
           <div className="flex gap-1.5 mb-4">
             {[1, 2, 3, 4, 5, 6, 7].map((d) => (
@@ -122,18 +133,18 @@ export function Home({ go }: { go: (t: Tab) => void }) {
             className="w-full"
             disabled={claimed}
             onClick={() => {
-              credit(150, "جایزه‌ی روزانه");
+              credit(150, "Daily reward");
               setClaimed(true);
             }}
           >
-            {claimed ? "دریافت شد ✓" : "دریافت ۱۵۰ ◈"}
+            {claimed ? "Claimed ✓" : "Claim 150 ◈"}
           </Button>
         </Card>
       </div>
 
-      {/* رفرال */}
+      {/* referral */}
       <div className="px-4">
-        <SectionTitle>دعوت دوستان</SectionTitle>
+        <SectionTitle>Invite friends</SectionTitle>
         <Card className="p-4">
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -145,9 +156,9 @@ export function Home({ go }: { go: (t: Tab) => void }) {
               </div>
             </div>
             <div className="flex-1">
-              <div className="text-[14px] font-bold">۲ دوست فعال دعوت کن</div>
+              <div className="text-[14px] font-bold">Invite 2 active friends</div>
               <div className="text-[12px] text-t2 mt-1">
-                تا پاداش ۲٬۰۰۰ ◈ باز شود
+                to unlock a 2,000 ◈ reward
               </div>
             </div>
           </div>
@@ -155,17 +166,15 @@ export function Home({ go }: { go: (t: Tab) => void }) {
             <span className="mono text-[11px] text-t3 flex-1 truncate">
               t.me/yourbot?start=ref_8241
             </span>
-            <button className="text-brand text-[13px] font-bold">کپی</button>
+            <button className="text-brand text-[13px] font-bold">Copy</button>
           </div>
         </Card>
       </div>
 
-      {/* تسک‌ها */}
+      {/* tasks */}
       <div className="px-4">
-        <SectionTitle
-          action={<span className="text-[12px] text-brand">همه</span>}
-        >
-          تسک‌های امروز
+        <SectionTitle action={<span className="text-[12px] text-brand">All</span>}>
+          Today's tasks
         </SectionTitle>
         <div className="space-y-2">
           {TASKS.map((t) => (
@@ -176,13 +185,14 @@ export function Home({ go }: { go: (t: Tab) => void }) {
               <div className="flex-1">
                 <div className="text-[14px] font-semibold">{t.title}</div>
                 <div className="mono text-[11px] text-brand mt-0.5">
-                  +{t.reward} ◈ {t.prog && <span className="text-t3">· {t.prog}</span>}
+                  +{t.reward} ◈{" "}
+                  {t.prog && <span className="text-t3">· {t.prog}</span>}
                 </div>
               </div>
               {t.done ? (
-                <span className="text-up text-[13px] font-bold">✓ انجام شد</span>
+                <span className="text-up text-[13px] font-bold">✓ Done</span>
               ) : (
-                <Button size="sm">شروع</Button>
+                <Button size="sm">Start</Button>
               )}
             </Card>
           ))}

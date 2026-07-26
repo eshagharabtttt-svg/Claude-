@@ -7,7 +7,7 @@ import { usePlayer } from "../lib/store";
 const ASSETS: AssetId[] = ["ETH", "BTC", "TON", "SOL"];
 const STAKES = [50, 100, 250, 500];
 
-/** طول راند و پنجره‌ی شرط — در نسخه‌ی واقعی از سرور می‌آید */
+/** Round length and betting window — served by the backend in production */
 const BET_WINDOW = 20_000;
 const ROUND_LEN = 30_000;
 const RESULT_HOLD = 6_000;
@@ -31,7 +31,7 @@ function buzz(ms: number | number[]) {
     try {
       navigator.vibrate(ms);
     } catch {
-      /* بعضی مرورگرها اجازه نمی‌دهند */
+      /* some browsers refuse without a gesture */
     }
   }
 }
@@ -46,21 +46,27 @@ export function QuickPlay() {
   const [bet, setBet] = useState<Bet | null>(null);
   const [stake, setStake] = useState(100);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
-  const [history, setHistory] = useState<Side[]>(["up", "down", "up", "up", "down"]);
+  const [history, setHistory] = useState<Side[]>([
+    "up",
+    "down",
+    "up",
+    "up",
+    "down",
+  ]);
   const [pools, setPools] = useState({ up: 1800, down: 1400 });
 
   const betRef = useRef<Bet | null>(null);
   betRef.current = bet;
   const startedAt = useRef(Date.now());
 
-  // قیمت زنده
+  // live price
   useEffect(() => {
     const f = getFeed(asset);
     setPrice(f.price);
     return f.sub((t) => setPrice(t.p));
   }, [asset]);
 
-  // چرخه‌ی راند
+  // round cycle
   useEffect(() => {
     let timers: ReturnType<typeof setTimeout>[] = [];
 
@@ -96,8 +102,15 @@ export function QuickPlay() {
                 const mult = (total * 0.97) / mine;
                 const won = b.side === winner;
                 const payout = won ? Math.round(b.stake * mult) : 0;
-                setOutcome({ side: b.side, stake: b.stake, won, payout, lock, close });
-                if (won) credit(payout, "برد راند");
+                setOutcome({
+                  side: b.side,
+                  stake: b.stake,
+                  won,
+                  payout,
+                  lock,
+                  close,
+                });
+                if (won) credit(payout, "Round win");
                 recordResult(won, won ? 25 : -5);
                 buzz(won ? [30, 60, 30] : 120);
               }
@@ -117,7 +130,7 @@ export function QuickPlay() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [asset]);
 
-  // تایمر نمایش
+  // display timer
   useEffect(() => {
     const t = setInterval(() => {
       const el = Date.now() - startedAt.current;
@@ -136,7 +149,7 @@ export function QuickPlay() {
     if (phase !== "betting" || bet) return;
     if (p.balance < stake) return;
     if (!spendEnergy(1)) return;
-    credit(-stake, `شرط ${side === "up" ? "صعود" : "نزول"}`);
+    credit(-stake, side === "up" ? "Bet UP" : "Bet DOWN");
     setBet({ side, stake });
     buzz(35);
   };
@@ -157,8 +170,8 @@ export function QuickPlay() {
     <div className="vscroll h-full pb-28">
       <header className="flex items-center justify-between px-4 pt-4 pb-3">
         <div>
-          <h1 className="text-[26px] font-extrabold leading-tight">بازی سریع</h1>
-          <p className="text-t3 text-xs mt-0.5">پیش‌بینی کن، ۳۰ ثانیه صبر کن</p>
+          <h1 className="text-[26px] font-extrabold leading-tight">Quick Play</h1>
+          <p className="text-t3 text-xs mt-0.5">Call it, then wait 30 seconds</p>
         </div>
         <BalancePill value={p.balance} />
       </header>
@@ -185,17 +198,21 @@ export function QuickPlay() {
               <div className="text-t3 text-[11px] mt-1">{assetLabel(asset)}</div>
             </div>
 
-            <div className="text-left">
+            <div className="text-right">
               <div className="text-[11px] text-t3 mb-1">
                 {phase === "betting"
-                  ? "بسته شدن شرط"
+                  ? "Betting closes"
                   : phase === "locked"
-                    ? "تا نتیجه"
-                    : "راند بعدی"}
+                    ? "Until result"
+                    : "Next round"}
               </div>
               <div
                 className={`mono text-[28px] font-bold leading-none ${
-                  urgent ? "text-down" : phase === "locked" ? "text-warn" : "text-brand"
+                  urgent
+                    ? "text-down"
+                    : phase === "locked"
+                      ? "text-warn"
+                      : "text-brand"
                 }`}
               >
                 {phase === "result" ? "--" : mmss(left)}
@@ -212,12 +229,15 @@ export function QuickPlay() {
             </div>
           </div>
 
-          <Chart asset={asset} height={200} lines={lines} tone={
-            lockPrice ? (delta >= 0 ? "up" : "down") : "brand"
-          } />
+          <Chart
+            asset={asset}
+            height={200}
+            lines={lines}
+            tone={lockPrice ? (delta >= 0 ? "up" : "down") : "brand"}
+          />
 
           <div className="flex items-center gap-1.5 px-4 py-3 border-t border-line">
-            <span className="text-[11px] text-t3 ml-1">راندهای اخیر</span>
+            <span className="text-[11px] text-t3 mr-1">Recent</span>
             {history.map((h, i) => (
               <span
                 key={i}
@@ -232,11 +252,11 @@ export function QuickPlay() {
         </Card>
       </div>
 
-      {/* استخر */}
+      {/* pool */}
       <div className="px-4 mt-3">
         <div className="flex justify-between text-[11px] mb-1.5">
-          <span className="text-up font-bold mono">{upPct}% صعود</span>
-          <span className="text-down font-bold mono">{100 - upPct}% نزول</span>
+          <span className="text-up font-bold mono">{upPct}% UP</span>
+          <span className="text-down font-bold mono">{100 - upPct}% DOWN</span>
         </div>
         <div className="h-2 rounded-full bg-down/25 overflow-hidden flex">
           <div
@@ -246,14 +266,14 @@ export function QuickPlay() {
         </div>
         <div className="flex justify-between text-[11px] text-t3 mt-1.5 mono">
           <span>{pools.up.toLocaleString("en-US")} ◈</span>
-          <span>استخر کل {total.toLocaleString("en-US")} ◈</span>
+          <span>pool {total.toLocaleString("en-US")} ◈</span>
           <span>{pools.down.toLocaleString("en-US")} ◈</span>
         </div>
       </div>
 
-      {/* انتخاب مبلغ */}
+      {/* stake */}
       <div className="px-4 mt-4">
-        <div className="text-[12px] text-t2 mb-2">مبلغ شرط</div>
+        <div className="text-[12px] text-t2 mb-2">Stake</div>
         <div className="hscroll flex gap-2">
           {STAKES.map((s) => (
             <Chip key={s} active={s === stake} onClick={() => setStake(s)}>
@@ -264,12 +284,12 @@ export function QuickPlay() {
             active={stake === p.balance}
             onClick={() => setStake(Math.max(50, Math.floor(p.balance)))}
           >
-            همه
+            Max
           </Chip>
         </div>
       </div>
 
-      {/* دکمه‌های اصلی */}
+      {/* actions */}
       <div className="px-4 mt-4 grid grid-cols-2 gap-3">
         <button
           disabled={phase !== "betting" || !!bet}
@@ -281,7 +301,7 @@ export function QuickPlay() {
           }`}
         >
           <span className="text-up text-[22px] leading-none">▲</span>
-          <span className="text-up font-extrabold text-[17px]">صعود</span>
+          <span className="text-up font-extrabold text-[17px]">UP</span>
           <span className="mono text-up/70 text-[12px] font-bold">×{multUp}</span>
         </button>
 
@@ -295,28 +315,31 @@ export function QuickPlay() {
           }`}
         >
           <span className="text-down text-[22px] leading-none">▼</span>
-          <span className="text-down font-extrabold text-[17px]">نزول</span>
-          <span className="mono text-down/70 text-[12px] font-bold">×{multDown}</span>
+          <span className="text-down font-extrabold text-[17px]">DOWN</span>
+          <span className="mono text-down/70 text-[12px] font-bold">
+            ×{multDown}
+          </span>
         </button>
       </div>
 
       <div className="px-4 mt-3 text-center text-[12px] text-t3">
         {bet ? (
           <span className="text-t2">
-            شرط ثبت شد ·{" "}
-            <span className="mono">{bet.stake}</span> ◈ روی{" "}
+            Bet placed · <span className="mono">{bet.stake}</span> ◈ on{" "}
             <span className={bet.side === "up" ? "text-up" : "text-down"}>
-              {bet.side === "up" ? "صعود" : "نزول"}
+              {bet.side === "up" ? "UP" : "DOWN"}
             </span>
           </span>
         ) : phase === "betting" ? (
-          <>هر شرط ۱ انرژی مصرف می‌کند · انرژی شما {p.energy}/{p.energyMax}</>
+          <>
+            Each bet costs 1 energy · you have {p.energy}/{p.energyMax}
+          </>
         ) : (
-          "شرط‌گیری بسته است — منتظر نتیجه"
+          "Betting closed — waiting for the result"
         )}
       </div>
 
-      {/* نتیجه */}
+      {/* result */}
       {outcome && (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 px-4 pb-6">
           <Card className="w-full max-w-md p-5 slideup">
@@ -333,7 +356,7 @@ export function QuickPlay() {
                   outcome.won ? "text-up" : "text-down"
                 }`}
               >
-                {outcome.won ? "بردی!" : "باختی"}
+                {outcome.won ? "You won!" : "You lost"}
               </div>
               {outcome.won && (
                 <div className="mono text-brand text-[30px] font-bold mt-1">
@@ -344,19 +367,19 @@ export function QuickPlay() {
 
             <div className="mt-5 grid grid-cols-3 gap-3 rounded-2xl bg-s2 p-3">
               <div>
-                <div className="text-[10px] text-t3">قیمت قفل</div>
+                <div className="text-[10px] text-t3">Lock price</div>
                 <div className="mono text-[13px] font-bold">
                   {fmtPrice(outcome.lock, asset)}
                 </div>
               </div>
               <div>
-                <div className="text-[10px] text-t3">قیمت بسته</div>
+                <div className="text-[10px] text-t3">Close price</div>
                 <div className="mono text-[13px] font-bold">
                   {fmtPrice(outcome.close, asset)}
                 </div>
               </div>
               <div>
-                <div className="text-[10px] text-t3">تغییر</div>
+                <div className="text-[10px] text-t3">Change</div>
                 <div
                   className={`mono text-[13px] font-bold ${
                     outcome.close >= outcome.lock ? "text-up" : "text-down"
@@ -373,7 +396,7 @@ export function QuickPlay() {
               size="lg"
               onClick={() => setOutcome(null)}
             >
-              راند بعدی
+              Next round
             </Button>
           </Card>
         </div>

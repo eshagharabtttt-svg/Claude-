@@ -9,11 +9,11 @@ import { Profile } from "./screens/Profile";
 export type Tab = "home" | "play" | "duel" | "markets" | "profile";
 
 const NAV: { id: Tab; icon: string; label: string }[] = [
-  { id: "home", icon: "⌂", label: "خانه" },
-  { id: "play", icon: "⚡", label: "بازی" },
-  { id: "duel", icon: "⚔", label: "دوئل" },
-  { id: "markets", icon: "◎", label: "بازار" },
-  { id: "profile", icon: "◉", label: "پروفایل" },
+  { id: "home", icon: "⌂", label: "Home" },
+  { id: "play", icon: "⚡", label: "Play" },
+  { id: "duel", icon: "⚔", label: "Duel" },
+  { id: "markets", icon: "◎", label: "Markets" },
+  { id: "profile", icon: "◉", label: "Profile" },
 ];
 
 export default function App() {
@@ -21,7 +21,7 @@ export default function App() {
 
   return (
     <PlayerProvider>
-      <div dir="rtl" className="mx-auto h-full max-w-[480px] relative bg-bg">
+      <div className="mx-auto h-full max-w-[480px] relative bg-bg">
         {tab === "home" && <Home go={setTab} />}
         {tab === "play" && <QuickPlay />}
         {tab === "duel" && <Duel />}

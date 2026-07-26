@@ -104,7 +104,7 @@ export function Chart({
     };
   }, [asset, height, color]);
 
-  // خطوط مرجع (قیمت قفل، شات‌ها)
+  // reference lines (lock price, duel shots)
   useEffect(() => {
     const s = series.current;
     if (!s) return;

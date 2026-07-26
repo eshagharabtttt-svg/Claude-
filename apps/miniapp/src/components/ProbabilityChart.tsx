@@ -17,10 +17,10 @@ export const SERIES_COLORS = [
 ];
 
 const RANGES = [
-  { key: "1h", label: "۱ ساعت", secs: 3600 },
-  { key: "1d", label: "۱ روز", secs: 86400 },
-  { key: "7d", label: "۷ روز", secs: 604800 },
-  { key: "all", label: "همه", secs: Infinity },
+  { key: "1h", label: "1H", secs: 3600 },
+  { key: "1d", label: "1D", secs: 86400 },
+  { key: "7d", label: "7D", secs: 604800 },
+  { key: "all", label: "ALL", secs: Infinity },
 ] as const;
 
 type RangeKey = (typeof RANGES)[number]["key"];
@@ -92,7 +92,7 @@ export function ProbabilityChart({
         lastValueVisible: false,
         crosshairMarkerRadius: 3,
       });
-      // زمان‌ها باید یکتا و صعودی باشند
+      // times must be unique and ascending
       const seen = new Set<number>();
       line.setData(
         s.points
@@ -118,7 +118,7 @@ export function ProbabilityChart({
 
   return (
     <div>
-      {/* راهنما */}
+      {/* legend */}
       <div className="hscroll flex gap-3 px-4 pb-2">
         {shown.map((s, i) => {
           const last = s.points.at(-1)?.[1] ?? 0;
@@ -144,7 +144,7 @@ export function ProbabilityChart({
 
       <div ref={box} className="w-full" style={{ height }} />
 
-      {/* بازه‌ی زمانی */}
+      {/* range tabs */}
       <div className="flex gap-1.5 px-4 pt-2">
         {RANGES.map((r) => (
           <button

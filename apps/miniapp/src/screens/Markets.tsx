@@ -3,6 +3,7 @@ import { BalancePill, Card, Chip } from "../components/ui";
 import { EventIcon } from "../components/EventIcon";
 import { MarketDetail } from "./MarketDetail";
 import {
+  byLiveliness,
   CATEGORIES,
   categoryCount,
   categoryLabel,
@@ -38,14 +39,14 @@ export function Markets() {
   return (
     <div className="vscroll h-full pb-28">
       <header className="flex items-center justify-between px-4 pt-4 pb-3">
-        <h1 className="text-[26px] font-extrabold">بازارها</h1>
+        <h1 className="text-[26px] font-extrabold">Markets</h1>
         <BalancePill value={p.balance} />
       </header>
 
-      {/* تب‌ها */}
+      {/* tabs */}
       <div className="hscroll flex gap-2 px-4 pb-3">
         <Chip active={tab === "trending"} onClick={() => setTab("trending")}>
-          ترند
+          Trending
         </Chip>
         {CATEGORIES.map((c) => (
           <Chip key={c.key} active={tab === c.key} onClick={() => setTab(c.key)}>
@@ -54,14 +55,14 @@ export function Markets() {
         ))}
       </div>
 
-      {/* جست‌وجو */}
+      {/* search */}
       <div className="px-4 pb-4">
         <div className="flex items-center gap-2.5 rounded-2xl bg-s2 border border-line h-12 px-4">
           <span className="text-t3 text-[15px]">⌕</span>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="نام بازار یا لینک پلی‌مارکت"
+            placeholder="Market name or Polymarket link"
             className="flex-1 bg-transparent outline-none text-[14px] placeholder:text-t3"
           />
           {query && (
@@ -75,7 +76,7 @@ export function Markets() {
       {searching ? (
         <div className="px-4 space-y-3">
           <div className="text-[12px] text-t3">
-            {results.length} نتیجه برای «{query.trim()}»
+            {results.length} results for \u201c{query.trim()}\u201d
           </div>
           {results.map((e) => (
             <EventCard key={e.id} event={e} onOpen={() => setOpen(e)} wide />
@@ -83,7 +84,7 @@ export function Markets() {
           {results.length === 0 && (
             <Card className="p-8 text-center">
               <div className="text-[30px]">🔍</div>
-              <div className="text-[14px] text-t2 mt-2">چیزی پیدا نشد</div>
+              <div className="text-[14px] text-t2 mt-2">Nothing found</div>
             </Card>
           )}
         </div>
@@ -101,20 +102,20 @@ export function Markets() {
   );
 }
 
-/* ---------- بنر ---------- */
+/* ---------- banner ---------- */
 
 function FeatureBanner() {
   return (
     <div className="px-4 pb-5">
       <div className="relative overflow-hidden rounded-[18px] border border-brand/25 bg-gradient-to-l from-brand/18 to-transparent p-4">
         <div className="text-brand text-[10px] font-extrabold tracking-widest">
-          ⚡ بازی سریع
+          ⚡ QUICK PLAY
         </div>
         <div className="text-[18px] font-extrabold mt-1.5">
-          ۳۰ ثانیه، بالا یا پایین
+          30 seconds, up or down
         </div>
         <div className="text-t2 text-[12px] mt-0.5">
-          روی اتریوم و بیت‌کوین، همین حالا
+          On ETH and BTC, right now
         </div>
         <div className="absolute -left-3 -bottom-4 text-[80px] opacity-10 leading-none">
           📈
@@ -124,7 +125,7 @@ function FeatureBanner() {
   );
 }
 
-/* ---------- بخش با اسکرول افقی ---------- */
+/* ---------- section carousel ---------- */
 
 function Section({
   cat,
@@ -135,12 +136,14 @@ function Section({
   onOpen: (e: PMEvent) => void;
   onAll: (t: Tab) => void;
 }) {
-  const [events, setEvents] = useState<PMEvent[]>(() => getSnapshot(cat));
+  const [events, setEvents] = useState<PMEvent[]>(() =>
+    byLiveliness(getSnapshot(cat))
+  );
 
   useEffect(() => {
     let alive = true;
     fetchLive(cat).then((live) => {
-      if (alive && live) setEvents(live);
+      if (alive && live) setEvents(byLiveliness(live));
     });
     return () => {
       alive = false;
@@ -165,7 +168,7 @@ function Section({
           onClick={() => onAll(cat)}
           className="flex items-center gap-1.5 rounded-full border border-line bg-s2 h-9 px-3.5 text-[12px] font-semibold text-t2"
         >
-          همه <span className="text-[13px]">‹</span>
+          All <span className="text-[13px]">›</span>
         </button>
       </div>
 
@@ -180,7 +183,7 @@ function Section({
   );
 }
 
-/* ---------- لیست یک دسته ---------- */
+/* ---------- single category list ---------- */
 
 function CategoryList({
   cat,
@@ -189,13 +192,15 @@ function CategoryList({
   cat: Category;
   onOpen: (e: PMEvent) => void;
 }) {
-  const [events, setEvents] = useState<PMEvent[]>(() => getSnapshot(cat));
+  const [events, setEvents] = useState<PMEvent[]>(() =>
+    byLiveliness(getSnapshot(cat))
+  );
 
   useEffect(() => {
     let alive = true;
-    setEvents(getSnapshot(cat));
+    setEvents(byLiveliness(getSnapshot(cat)));
     fetchLive(cat).then((live) => {
-      if (alive && live) setEvents(live);
+      if (alive && live) setEvents(byLiveliness(live));
     });
     return () => {
       alive = false;
@@ -205,10 +210,10 @@ function CategoryList({
   return (
     <div className="px-4 space-y-3">
       <div className="text-[12px] text-t3">
-        <span dir="ltr" className="mono">
+        <span className="mono">
           {categoryCount(cat).toLocaleString("en-US")}
         </span>{" "}
-        بازار در پلی‌مارکت
+        open markets on Polymarket
       </div>
       {events.map((e) => (
         <EventCard key={e.id} event={e} onOpen={() => onOpen(e)} wide />
@@ -217,7 +222,7 @@ function CategoryList({
   );
 }
 
-/* ---------- کارت رویداد ---------- */
+/* ---------- event card ---------- */
 
 function EventCard({
   event,
@@ -236,7 +241,7 @@ function EventCard({
       onClick={onOpen}
       className={`p-4 flex flex-col ${wide ? "" : "h-full"}`}
     >
-      {/* سربرگ */}
+      {/* header */}
       <div className="flex items-start gap-3">
         <EventIcon src={event.icon} name={event.title} size={44} />
         <div
@@ -253,21 +258,18 @@ function EventCard({
         )}
       </div>
 
-      {/* ردیف‌های نتیجه */}
+      {/* outcome rows */}
       <div className="mt-3.5 space-y-2.5 flex-1">
         {rows.map((m) => (
           <OutcomeRow key={m.id} market={m} />
         ))}
       </div>
 
-      {/* پاورقی */}
+      {/* footer */}
       <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-line">
         <span className="text-[11px] text-t3">
-          حجم{" "}
-          <span dir="ltr" className="mono">
-            {fmtUsd(event.volume)}
-          </span>{" "}
-          · {categoryLabel(event.category ?? "")}
+          Vol <span className="mono">{fmtUsd(event.volume)}</span> ·{" "}
+          {categoryLabel(event.category ?? "")}
         </span>
         {left && (
           <span className="text-[11px] text-t3 flex items-center gap-1">
@@ -292,13 +294,13 @@ function OutcomeRow({ market }: { market: PMMarket }) {
       >
         {market.label ?? market.question}
       </span>
-      <span className="mono text-[13px] font-bold text-t1 shrink-0 w-9 text-left">
+      <span className="mono text-[13px] font-bold text-t1 shrink-0 w-9 text-right">
         {pct}%
       </span>
 
       {settled ? (
         <span className="text-[10px] text-t3 shrink-0 w-[108px] text-center">
-          در انتظار حل‌وفصل
+          Awaiting resolution
         </span>
       ) : (
         <div className="flex gap-1.5 shrink-0">
@@ -314,7 +316,7 @@ function OutcomeRow({ market }: { market: PMMarket }) {
   );
 }
 
-/** نام‌های بلند تیم‌ها روی دکمه جا نمی‌شوند — کوتاه می‌شوند */
+/** Long team names do not fit on the pill — abbreviate them */
 function short(name: string) {
   if (name.length <= 6) return name;
   const words = name.split(" ").filter(Boolean);

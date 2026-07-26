@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-/** رنگ پایدار از روی نام — تا هر رویداد همیشه یک رنگ داشته باشد */
+/** Stable tint derived from the name, so an event keeps its color */
 const TINTS = [
   "#c6f73c",
   "#16c784",
@@ -17,8 +17,8 @@ function tintOf(name: string) {
 }
 
 /**
- * آیکون رویداد. اگر تصویر نبود یا بارگذاری نشد، به یک نشان حرفی با
- * رنگ پایدار برمی‌گردد — هیچ‌وقت کادر خالی یا آیکون شکسته دیده نمی‌شود.
+ * Event artwork. When the image is missing or fails to load it falls back
+ * to a tinted initial, so a broken or empty box is never shown.
  */
 export function EventIcon({
   src,

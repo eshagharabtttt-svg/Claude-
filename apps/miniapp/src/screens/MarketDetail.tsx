@@ -37,7 +37,7 @@ export function MarketDetail({
   const left = timeLeft(event.endDate);
   const markets = sortByCompetitiveness(event.markets);
 
-  // فوری از اسنپ‌شات، بعد در پس‌زمینه با داده‌ی زنده جایگزین می‌شود
+  // Snapshot first, then swapped for live data in the background
   const [series, setSeries] = useState<Series[]>(() =>
     markets
       .slice(0, 5)
@@ -72,11 +72,13 @@ export function MarketDetail({
 
   const confirm = () => {
     if (!pick || p.balance < stake) return;
-    credit(-stake, `پیش‌بینی: ${pick.outcome.name}`);
+    credit(-stake, `Prediction: ${pick.outcome.name}`);
     setPlaced(
-      `${stake} ◈ روی «${outcomeLabel(pick.outcome.name)}» ثبت شد — سود احتمالی ${Math.round(
+      `${stake} \u25c8 on \u201c${outcomeLabel(
+        pick.outcome.name
+      )}\u201d placed \u2014 pays ${Math.round(
         stake / Math.max(0.01, pick.outcome.price)
-      ).toLocaleString("en-US")} ◈`
+      ).toLocaleString("en-US")} \u25c8`
     );
     setPick(null);
   };
@@ -88,7 +90,7 @@ export function MarketDetail({
           onClick={onBack}
           className="flex items-center gap-1.5 text-t2 text-[14px] font-semibold"
         >
-          <span className="text-[17px]">→</span> بازگشت
+          <span className="text-[17px]">\u2190</span> Back
         </button>
         <BalancePill value={p.balance} />
       </header>
@@ -97,11 +99,11 @@ export function MarketDetail({
         <div className="flex items-center gap-2 mb-2">
           {event.live && (
             <span className="rounded-full bg-live/15 text-live text-[10px] font-bold px-2 py-0.5">
-              ● زنده
+              ● LIVE
             </span>
           )}
-          <span className="text-brand text-[11px] font-bold">باز</span>
-          {left && <span className="text-t3 text-[11px]">· {left} مانده</span>}
+          <span className="text-brand text-[11px] font-bold">Open</span>
+          {left && <span className="text-t3 text-[11px]">· {left}</span>}
         </div>
 
         <div className="flex items-start gap-3">
@@ -111,13 +113,13 @@ export function MarketDetail({
               {event.title}
             </h1>
             <p className="text-t3 text-[12px] mt-1">
-              حل‌وفصل در {fmtDate(event.endDate)}
+              Resolves {fmtDate(event.endDate)}
             </p>
           </div>
         </div>
       </div>
 
-      {/* چارت احتمال */}
+      {/* probability chart */}
       {series.length > 0 && (
         <div className="px-4 mt-4">
           <Card className="py-3 overflow-hidden">
@@ -126,19 +128,19 @@ export function MarketDetail({
         </div>
       )}
 
-      {/* آمار */}
+      {/* stats */}
       <div className="px-4 mt-4">
         <Card className="p-4 grid grid-cols-2 gap-y-4">
-          <Metric label="حجم ۲۴ ساعت" value={fmtUsd(event.volume24h)} />
-          <Metric label="حجم کل" value={fmtUsd(event.volume)} />
-          <Metric label="نقدینگی" value={fmtUsd(event.liquidity)} />
-          <Metric label="موقعیت باز" value={fmtUsd(event.openInterest)} />
+          <Metric label="24h volume" value={fmtUsd(event.volume24h)} />
+          <Metric label="Total volume" value={fmtUsd(event.volume)} />
+          <Metric label="Liquidity" value={fmtUsd(event.liquidity)} />
+          <Metric label="Open interest" value={fmtUsd(event.openInterest)} />
         </Card>
       </div>
 
-      {/* نتایج */}
+      {/* outcomes */}
       <div className="px-4 mt-4">
-        <h2 className="text-[17px] font-extrabold mb-3">نتایج</h2>
+        <h2 className="text-[17px] font-extrabold mb-3">Outcomes</h2>
         <div className="space-y-2">
           {markets.map((m) => {
             const top = m.outcomes[0];
@@ -151,10 +153,7 @@ export function MarketDetail({
                       {m.label ?? m.question}
                     </div>
                     <div className="text-[10px] text-t3 mt-1">
-                      حجم{" "}
-                      <span dir="ltr" className="mono">
-                        {fmtUsd(m.volume)}
-                      </span>
+                      Vol <span className="mono">{fmtUsd(m.volume)}</span>
                     </div>
                   </div>
                   <div className="mono text-[20px] font-extrabold text-brand shrink-0">
@@ -197,22 +196,22 @@ export function MarketDetail({
         </div>
       </div>
 
-      {/* منبع */}
+      {/* source */}
       <div className="px-4 mt-4">
         <Card className="p-4">
           <button
             onClick={() => setShowDesc((s) => !s)}
             className="w-full flex items-center justify-between"
           >
-            <h2 className="text-[17px] font-extrabold">جزئیات</h2>
+            <h2 className="text-[17px] font-extrabold">Details</h2>
             <span className="text-t3">{showDesc ? "▲" : "▼"}</span>
           </button>
 
           <div className="mt-3 space-y-2.5">
-            <Row label="منبع داده" value="Polymarket" accent />
-            <Row label="حل‌وفصل" value="UMA Oracle" />
+            <Row label="Data source" value="Polymarket" accent />
+            <Row label="Resolution" value="UMA Oracle" />
             {event.resolutionSource && (
-              <Row label="مرجع" value={event.resolutionSource} />
+              <Row label="Reference" value={event.resolutionSource} />
             )}
           </div>
 
@@ -228,11 +227,11 @@ export function MarketDetail({
       </div>
 
       <p className="px-4 mt-3 text-[11px] text-t3 leading-relaxed">
-        قیمت‌ها و نتایج از پلی‌مارکت خوانده می‌شود. شرط شما در استخر داخلی با توکن
-        بازی ثبت می‌شود، نه روی پلی‌مارکت.
+        Prices and resolutions come from Polymarket. Your prediction is placed
+        in our internal pool with game tokens, not on Polymarket.
       </p>
 
-      {/* شیت تأیید */}
+      {/* confirm sheet */}
       {pick && (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 px-4 pb-6">
           <Card className="w-full max-w-md p-5 slideup">
@@ -252,7 +251,7 @@ export function MarketDetail({
               </span>
             </div>
 
-            <div className="text-[12px] text-t2 mt-4 mb-2">مبلغ</div>
+            <div className="text-[12px] text-t2 mt-4 mb-2">Amount</div>
             <div className="hscroll flex gap-2">
               {STAKES.map((s) => (
                 <button
@@ -268,7 +267,7 @@ export function MarketDetail({
             </div>
 
             <div className="flex justify-between mt-4 rounded-xl bg-s2 p-3">
-              <span className="text-[12px] text-t2">سود احتمالی</span>
+              <span className="text-[12px] text-t2">Potential payout</span>
               <span className="mono text-[15px] font-bold text-brand">
                 {Math.round(
                   stake / Math.max(0.01, pick.outcome.price)
@@ -279,10 +278,10 @@ export function MarketDetail({
 
             <div className="grid grid-cols-2 gap-2 mt-4">
               <Button variant="surface" size="lg" onClick={() => setPick(null)}>
-                انصراف
+                Cancel
               </Button>
               <Button size="lg" disabled={p.balance < stake} onClick={confirm}>
-                {p.balance < stake ? "موجودی کم" : "ثبت"}
+                {p.balance < stake ? "Low balance" : "Place"}
               </Button>
             </div>
           </Card>
@@ -325,7 +324,7 @@ function Row({
     <div className="flex items-center justify-between gap-4">
       <span className="text-[13px] text-t2 shrink-0">{label}</span>
       <span
-        className={`mono text-[12px] font-bold text-left truncate ${
+        className={`mono text-[12px] font-bold text-right truncate ${
           accent ? "text-brand" : "text-t1"
         }`}
       >

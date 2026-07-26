@@ -25,9 +25,9 @@ type Shot = {
 
 const OPPONENTS = [
   { name: "Reza_TR", acc: 58, elo: 1204 },
-  { name: "کیان", acc: 61, elo: 1250 },
+  { name: "Kian", acc: 61, elo: 1250 },
   { name: "MoonBoy", acc: 54, elo: 1132 },
-  { name: "سارا", acc: 63, elo: 1288 },
+  { name: "Sara", acc: 63, elo: 1288 },
 ];
 
 function buzz(ms: number | number[]) {
@@ -69,7 +69,7 @@ export function Duel() {
     setStage("searching");
     setOpp(OPPONENTS[Math.floor(Math.random() * OPPONENTS.length)]);
     setTimeout(() => {
-      credit(-stake, "ورودی دوئل");
+      credit(-stake, "Duel entry");
       startAt.current = Date.now();
       botPlan.current = Array.from({ length: SHOTS }, () =>
         Math.round(3000 + Math.random() * (DUEL_LEN - SHOT_WINDOW - 6000))
@@ -82,7 +82,7 @@ export function Duel() {
     }, 1600);
   };
 
-  // حلقه‌ی اصلی دوئل
+  // main duel loop
   useEffect(() => {
     if (stage !== "arena") return;
     const t = setInterval(() => {
@@ -103,7 +103,7 @@ export function Duel() {
       setMine((m) => resolve(m));
       setTheirs((o) => {
         const next = resolve(o);
-        // شلیک ربات طبق برنامه
+        // bot fires on schedule
         if (botPlan.current.length && elapsed >= botPlan.current[0]) {
           botPlan.current.shift();
           next.push({
@@ -121,7 +121,7 @@ export function Duel() {
     return () => clearInterval(t);
   }, [stage, asset]);
 
-  // تسویه‌ی دوئل
+  // duel settlement
   const settled = useRef(false);
   useEffect(() => {
     if (stage !== "result" || settled.current) return;
@@ -129,7 +129,7 @@ export function Duel() {
     const my = scoreOf(mine);
     const th = scoreOf(theirs);
     const won = my > th;
-    if (won) credit(stake * 2, "برد دوئل");
+    if (won) credit(stake * 2, "Duel win");
     recordResult(won, won ? 60 : -15);
     buzz(won ? [40, 60, 40, 60, 80] : 150);
   }, [stage, mine, theirs, stake, credit, recordResult]);
@@ -152,15 +152,15 @@ export function Duel() {
     mine.length < SHOTS &&
     Date.now() - startAt.current <= DUEL_LEN - SHOT_WINDOW;
 
-  /* ---------------- لابی ---------------- */
+  /* ---------------- lobby ---------------- */
   if (stage === "lobby" || stage === "searching") {
     return (
       <div className="vscroll h-full pb-28">
         <header className="flex items-center justify-between px-4 pt-4 pb-4">
           <div>
-            <h1 className="text-[26px] font-extrabold leading-tight">دوئل</h1>
+            <h1 className="text-[26px] font-extrabold leading-tight">Duel</h1>
             <p className="text-t3 text-xs mt-0.5">
-              رودررو با یک بازیکن واقعی — برنده همه را می‌برد
+              Head to head with a real player — winner takes all
             </p>
           </div>
           <BalancePill value={p.balance} />
@@ -170,7 +170,7 @@ export function Duel() {
           <div className="px-4">
             <Card className="p-8 text-center">
               <div className="mx-auto h-20 w-20 rounded-full border-4 border-brand/30 border-t-brand animate-spin" />
-              <div className="mt-5 text-[17px] font-bold">در حال یافتن حریف…</div>
+              <div className="mt-5 text-[17px] font-bold">Finding an opponent…</div>
               <div className="text-t3 text-[12px] mt-1 mono">
                 Elo {p.elo} ± 120
               </div>
@@ -179,7 +179,7 @@ export function Duel() {
         ) : (
           <div className="px-4 space-y-4">
             <Card className="p-4">
-              <div className="text-[12px] text-t2 mb-2">دارایی</div>
+              <div className="text-[12px] text-t2 mb-2">Asset</div>
               <div className="hscroll flex gap-2">
                 {ASSETS.map((a) => (
                   <Chip key={a} active={a === asset} onClick={() => setAsset(a)}>
@@ -188,7 +188,7 @@ export function Duel() {
                 ))}
               </div>
 
-              <div className="text-[12px] text-t2 mt-4 mb-2">مبلغ ورودی</div>
+              <div className="text-[12px] text-t2 mt-4 mb-2">Entry stake</div>
               <div className="hscroll flex gap-2">
                 {STAKES.map((s) => (
                   <Chip key={s} active={s === stake} onClick={() => setStake(s)}>
@@ -199,26 +199,26 @@ export function Duel() {
             </Card>
 
             <Card className="p-4">
-              <div className="text-[13px] font-bold mb-3">قوانین دوئل</div>
+              <div className="text-[13px] font-bold mb-3">How a duel works</div>
               <ul className="space-y-2 text-[12px] text-t2">
                 <li className="flex gap-2">
-                  <span className="text-brand">◆</span> مدت دوئل ۹۰ ثانیه
+                  <span className="text-brand">◆</span> 90 seconds long
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-brand">◆</span> هر نفر {SHOTS} شات — خودت
-                  انتخاب می‌کنی کِی شلیک کنی
+                  <span className="text-brand">◆</span> {SHOTS} shots each — you
+                  pick the moment to fire
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-brand">◆</span> هر شات ۱۵ ثانیه بعد تسویه
-                  می‌شود
+                  <span className="text-brand">◆</span> every shot settles 15
+                  seconds after firing
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-brand">◆</span> امتیاز = اندازه‌ی حرکت درست،
-                  نه فقط برد
+                  <span className="text-brand">◆</span> score is the size of the
+                  correct move, not just a win
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-brand">◆</span> شات‌های حریف تا لحظه‌ی قفل
-                  مخفی است
+                  <span className="text-brand">◆</span> your opponent's shots stay
+                  hidden until they lock
                 </li>
               </ul>
             </Card>
@@ -229,11 +229,11 @@ export function Duel() {
               disabled={p.balance < stake}
               onClick={begin}
             >
-              {p.balance < stake ? "موجودی کافی نیست" : "یافتن حریف"}
+              {p.balance < stake ? "Not enough balance" : "Find opponent"}
             </Button>
 
             <Button size="lg" variant="surface" className="w-full">
-              دعوت دوست از تلگرام
+              Invite a friend from Telegram
             </Button>
           </div>
         )}
@@ -241,7 +241,7 @@ export function Duel() {
     );
   }
 
-  /* ---------------- نتیجه ---------------- */
+  /* ---------------- result ---------------- */
   if (stage === "result") {
     const won = myScore > thScore;
     return (
@@ -253,7 +253,7 @@ export function Duel() {
               won ? "text-up" : "text-down"
             }`}
           >
-            {won ? "بردی!" : "باختی"}
+            {won ? "You won!" : "You lost"}
           </div>
           {won && (
             <div className="mono text-brand text-[30px] font-bold mt-1">
@@ -263,7 +263,7 @@ export function Duel() {
 
           <div className="flex items-center justify-center gap-6 mt-6">
             <div>
-              <div className="text-[11px] text-t3">تو</div>
+              <div className="text-[11px] text-t3">You</div>
               <div className={`mono text-[28px] font-bold ${won ? "text-up" : ""}`}>
                 {myScore}
               </div>
@@ -281,13 +281,13 @@ export function Duel() {
         <div className="mt-4 space-y-2">
           {mine.map((s, i) => (
             <Card key={s.id} className="p-3 flex items-center gap-3">
-              <span className="text-[11px] text-t3 w-10">شات {i + 1}</span>
+              <span className="text-[11px] text-t3 w-12">Shot {i + 1}</span>
               <span
                 className={`text-[13px] font-bold ${
                   s.side === "up" ? "text-up" : "text-down"
                 }`}
               >
-                {s.side === "up" ? "▲ صعود" : "▼ نزول"}
+                {s.side === "up" ? "▲ UP" : "▼ DOWN"}
               </span>
               <span className="mono text-[11px] text-t3 flex-1">
                 {fmtPrice(s.lock, asset)} → {s.close ? fmtPrice(s.close, asset) : "—"}
@@ -305,7 +305,7 @@ export function Duel() {
         </div>
 
         <Button size="lg" variant="surface" className="w-full mt-4">
-          اشتراک نتیجه در گروه
+          Share result
         </Button>
         <Button
           size="lg"
@@ -315,13 +315,13 @@ export function Duel() {
             setStage("lobby");
           }}
         >
-          دوئل دوباره
+          Rematch
         </Button>
       </div>
     );
   }
 
-  /* ---------------- میدان دوئل ---------------- */
+  /* ---------------- arena ---------------- */
   const lines: Marker[] = mine
     .filter((s) => s.close === undefined)
     .map((s) => ({
@@ -333,18 +333,18 @@ export function Duel() {
 
   return (
     <div className="vscroll h-full pb-28">
-      {/* نوار امتیاز */}
+      {/* score bar */}
       <div className="px-4 pt-4">
         <Card className="p-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="h-9 w-9 rounded-full bg-brand/20 border border-brand/40 flex items-center justify-center text-[13px] font-bold text-brand">
-                من
+                YOU
               </div>
               <div>
-                <div className="text-[12px] font-bold">تو</div>
+                <div className="text-[12px] font-bold">You</div>
                 <div className="mono text-[10px] text-t3">
-                  {accuracy(p)}% دقت
+                  {accuracy(p)}% acc
                 </div>
               </div>
             </div>
@@ -372,9 +372,9 @@ export function Duel() {
               <div className="h-9 w-9 rounded-full bg-s3 border border-line flex items-center justify-center text-[13px] font-bold">
                 {opp.name[0]}
               </div>
-              <div className="text-left">
+              <div className="text-right">
                 <div className="text-[12px] font-bold">{opp.name}</div>
-                <div className="mono text-[10px] text-t3">{opp.acc}% دقت</div>
+                <div className="mono text-[10px] text-t3">{opp.acc}% acc</div>
               </div>
             </div>
           </div>
@@ -393,13 +393,13 @@ export function Duel() {
         </Card>
       </div>
 
-      {/* شات‌ها */}
+      {/* shots */}
       <div className="px-4 mt-3 grid grid-cols-2 gap-3">
-        <ShotColumn title="شات‌های تو" shots={mine} asset={asset} own />
-        <ShotColumn title={`شات‌های ${opp.name}`} shots={theirs} asset={asset} />
+        <ShotColumn title="Your shots" shots={mine} asset={asset} own />
+        <ShotColumn title={`${opp.name}\u2019s shots`} shots={theirs} asset={asset} />
       </div>
 
-      {/* دکمه‌های شلیک */}
+      {/* fire buttons */}
       <div className="px-4 mt-4 grid grid-cols-2 gap-3">
         <button
           disabled={!canFire}
@@ -407,7 +407,7 @@ export function Duel() {
           className="h-[76px] rounded-2xl border-2 border-up/40 bg-up/10 active:bg-up/25 disabled:opacity-30 flex flex-col items-center justify-center"
         >
           <span className="text-up text-[20px] leading-none">▲</span>
-          <span className="text-up font-extrabold text-[16px] mt-1">شلیک صعود</span>
+          <span className="text-up font-extrabold text-[16px] mt-1">FIRE UP</span>
         </button>
         <button
           disabled={!canFire}
@@ -415,14 +415,14 @@ export function Duel() {
           className="h-[76px] rounded-2xl border-2 border-down/40 bg-down/10 active:bg-down/25 disabled:opacity-30 flex flex-col items-center justify-center"
         >
           <span className="text-down text-[20px] leading-none">▼</span>
-          <span className="text-down font-extrabold text-[16px] mt-1">شلیک نزول</span>
+          <span className="text-down font-extrabold text-[16px] mt-1">FIRE DOWN</span>
         </button>
       </div>
 
       <div className="text-center text-[12px] text-t3 mt-3 px-4">
         {mine.length >= SHOTS
-          ? "شات‌هایت تمام شد — منتظر تسویه بمان"
-          : `${SHOTS - mine.length} شات باقی مانده · هر شات ۱۵ ثانیه`}
+          ? "Out of shots — waiting for settlement"
+          : `${SHOTS - mine.length} shots left · 15s each`}
       </div>
     </div>
   );

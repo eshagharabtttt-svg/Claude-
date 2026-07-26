@@ -2,19 +2,19 @@ import { Card, SectionTitle, Stat } from "../components/ui";
 import { accuracy, usePlayer } from "../lib/store";
 
 const BOARD = [
-  { r: 1, n: "سارا", pts: 12480, me: false },
-  { r: 2, n: "کیان", pts: 11205, me: false },
+  { r: 1, n: "Sara", pts: 12480, me: false },
+  { r: 2, n: "Kian", pts: 11205, me: false },
   { r: 3, n: "Reza_TR", pts: 9840, me: false },
   { r: 4, n: "MoonBoy", pts: 8120, me: false },
 ];
 
 const BADGES = [
-  { i: "🎯", t: "تیرانداز", got: true },
-  { i: "🔥", t: "۷ روز پیاپی", got: true },
-  { i: "⚔️", t: "۱۰ دوئل برد", got: true },
-  { i: "💎", t: "الماس", got: false },
-  { i: "👑", t: "قهرمان فصل", got: false },
-  { i: "🚀", t: "۱۰۰ برد", got: false },
+  { i: "🎯", t: "Sharpshooter", got: true },
+  { i: "🔥", t: "7-day streak", got: true },
+  { i: "⚔️", t: "10 duel wins", got: true },
+  { i: "💎", t: "Diamond", got: false },
+  { i: "👑", t: "Season champion", got: false },
+  { i: "🚀", t: "100 wins", got: false },
 ];
 
 export function Profile() {
@@ -24,22 +24,22 @@ export function Profile() {
     <div className="vscroll h-full pb-28 px-4 pt-4">
       <div className="text-center">
         <div className="mx-auto h-20 w-20 rounded-full bg-brand/20 border-2 border-brand flex items-center justify-center text-[28px] text-brand font-bold">
-          ب
+          P
         </div>
         <div className="text-[19px] font-extrabold mt-3">{p.name}</div>
         <div className="mono text-[12px] text-t3 mt-0.5">
-          Elo {p.elo} · رتبه ۲۴۷ از ۱۲٬۴۰۸
+          Elo {p.elo} · rank 247 of 12,408
         </div>
       </div>
 
       <Card className="p-4 mt-5 flex gap-3">
-        <Stat label="دقت" value={`${accuracy(p)}%`} tone="brand" />
-        <Stat label="برد" value={p.wins} tone="up" />
-        <Stat label="باخت" value={p.losses} tone="down" />
-        <Stat label="استریک" value={`🔥 ${p.streak}`} />
+        <Stat label="Accuracy" value={`${accuracy(p)}%`} tone="brand" />
+        <Stat label="Wins" value={p.wins} tone="up" />
+        <Stat label="Losses" value={p.losses} tone="down" />
+        <Stat label="Streak" value={`🔥 ${p.streak}`} />
       </Card>
 
-      <SectionTitle>نشان‌ها</SectionTitle>
+      <SectionTitle>Badges</SectionTitle>
       <div className="grid grid-cols-3 gap-2">
         {BADGES.map((b, i) => (
           <Card
@@ -52,7 +52,7 @@ export function Profile() {
         ))}
       </div>
 
-      <SectionTitle>جدول فصل ۱</SectionTitle>
+      <SectionTitle>Season 1 leaderboard</SectionTitle>
       <div className="space-y-2">
         {BOARD.map((b) => (
           <Card key={b.r} className="p-3 flex items-center gap-3">
@@ -76,16 +76,16 @@ export function Profile() {
         <Card className="p-3 flex items-center gap-3 border-brand/50 bg-brand/8">
           <span className="mono w-6 text-center font-bold text-brand">247</span>
           <div className="h-8 w-8 rounded-full bg-brand/25 flex items-center justify-center text-[12px] font-bold text-brand">
-            ب
+            P
           </div>
-          <span className="flex-1 text-[14px] font-semibold">تو</span>
+          <span className="flex-1 text-[14px] font-semibold">You</span>
           <span className="mono text-[13px] text-brand font-bold">
             {p.points.toLocaleString("en-US")}
           </span>
         </Card>
       </div>
 
-      <SectionTitle>تاریخچه‌ی تراکنش</SectionTitle>
+      <SectionTitle>Transactions</SectionTitle>
       <div className="space-y-1.5">
         {p.ledger.slice(0, 10).map((e) => (
           <div
