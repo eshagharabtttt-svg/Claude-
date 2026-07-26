@@ -12,6 +12,7 @@ import {
   type PMEvent,
 } from "../../lib/polymarket";
 import { usePlayer } from "../../lib/store";
+import { useFullScreen } from "../../lib/chrome";
 import { GameHeader } from "./GameHeader";
 
 const STAKES = [25, 50, 100, 250];
@@ -59,6 +60,7 @@ function candidates(): { event: PMEvent; legs: Leg[] }[] {
 }
 
 export function Parlay({ onBack }: { onBack: () => void }) {
+  useFullScreen();
   const { p, credit } = usePlayer();
   const [legs, setLegs] = useState<Leg[]>([]);
   const [stake, setStake] = useState(50);
@@ -95,7 +97,7 @@ export function Parlay({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div className="h-full flex flex-col pb-[68px]">
+    <div className="h-full flex flex-col pb-1">
       <GameHeader title="Parlay" onBack={onBack}>
         <BalancePill value={p.balance} />
       </GameHeader>
@@ -227,7 +229,7 @@ export function Parlay({ onBack }: { onBack: () => void }) {
       </div>
 
       {placed && (
-        <div className="fixed inset-x-4 bottom-24 z-40">
+        <div className="fixed inset-x-4 bottom-6 z-40">
           <div className="rounded-2xl bg-brand text-bg px-4 py-3 text-[13px] font-bold text-center slideup">
             {placed}
           </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BalancePill, Button } from "../../components/ui";
 import { usePlayer } from "../../lib/store";
+import { useFullScreen } from "../../lib/chrome";
 import { GameHeader } from "./GameHeader";
 import { CrashCurve, curve } from "./CrashCurve";
 
@@ -50,6 +51,7 @@ function buzz(ms: number | number[]) {
 }
 
 export function Crash({ onBack }: { onBack: () => void }) {
+  useFullScreen();
   const { p, credit } = usePlayer();
   const [phase, setPhase] = useState<Phase>("betting");
   const [mult, setMult] = useState(1);
@@ -179,7 +181,7 @@ export function Crash({ onBack }: { onBack: () => void }) {
   const live = phase === "flying" && inPlay && cashedAt === null;
 
   return (
-    <div className="h-full flex flex-col pb-[68px]">
+    <div className="h-full flex flex-col pb-1">
       <GameHeader title="Crash" onBack={onBack}>
         <BalancePill value={p.balance} />
       </GameHeader>

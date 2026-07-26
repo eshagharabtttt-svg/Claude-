@@ -3,6 +3,7 @@ import { Chart, type Marker } from "../components/Chart";
 import { BalancePill, Button, Card, Chip } from "../components/ui";
 import { fmtPrice, getFeed, mmss, type AssetId } from "../lib/feed";
 import { accuracy, usePlayer } from "../lib/store";
+import { useChrome } from "../lib/chrome";
 
 const ASSETS: AssetId[] = ["ETH", "BTC", "TON", "SOL"];
 const STAKES = [100, 250, 500, 1000];
@@ -54,6 +55,12 @@ export function Duel() {
   const [mine, setMine] = useState<Shot[]>([]);
   const [theirs, setTheirs] = useState<Shot[]>([]);
   const [price, setPrice] = useState(getFeed("ETH").price);
+
+  const { setNavHidden } = useChrome();
+  useEffect(() => {
+    setNavHidden(stage !== "lobby");
+    return () => setNavHidden(false);
+  }, [stage, setNavHidden]);
 
   const startAt = useRef(0);
   const botPlan = useRef<number[]>([]);
@@ -335,7 +342,7 @@ export function Duel() {
     myScore === thScore ? "brand" : myScore > thScore ? "up" : "down";
 
   return (
-    <div className="h-full flex flex-col pb-[68px]">
+    <div className="h-full flex flex-col pb-1">
       {/* score bar */}
       <div className="px-4 pt-4 shrink-0">
         <div className="flex items-center justify-between">

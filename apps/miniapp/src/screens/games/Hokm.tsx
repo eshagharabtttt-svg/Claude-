@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BalancePill, Button, Card as Panel } from "../../components/ui";
 import { usePlayer } from "../../lib/store";
+import { useFullScreen } from "../../lib/chrome";
 import { GameHeader } from "./GameHeader";
+import { CardFace, CardFan, suitColor } from "../../components/cards";
 import {
   botPlay,
   cardId,
@@ -10,8 +12,6 @@ import {
   HANDS_TO_WIN,
   legalMoves,
   next,
-  rankLabel,
-  RED,
   scoreHand,
   nextHakem,
   sortHand,
@@ -43,6 +43,7 @@ function buzz(ms: number | number[]) {
 }
 
 export function Hokm({ onBack }: { onBack: () => void }) {
+  useFullScreen();
   const { p, credit, recordResult } = usePlayer();
   const [phase, setPhase] = useState<Phase>("lobby");
   const [stake, setStake] = useState(100);
@@ -198,7 +199,7 @@ export function Hokm({ onBack }: { onBack: () => void }) {
 
   if (phase === "lobby") {
     return (
-      <div className="vscroll h-full pb-28">
+      <div className="vscroll h-full pb-6">
         <GameHeader title="Hokm" onBack={onBack}>
           <BalancePill value={p.balance} />
         </GameHeader>
@@ -256,86 +257,85 @@ export function Hokm({ onBack }: { onBack: () => void }) {
   const myLegal = trump ? legalMoves(hands[0], trick) : [];
   const legalIds = new Set(myLegal.map(cardId));
   const myTurn = phase === "play" && turn === 0 && trick.length < 4;
-
   const played = (seat: Seat) => trick.find((t) => t.seat === seat)?.card;
 
   return (
-    <div className="h-full flex flex-col pb-[68px]">
+    <div className="h-full flex flex-col pb-1 bg-[#0d0f0d]">
       <GameHeader title="Hokm" onBack={onBack}>
         <BalancePill value={p.balance} />
       </GameHeader>
 
-      {/* scoreboard */}
-      <div className="px-4 pb-2 shrink-0 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-t3">Trump</span>
+      {/* felt */}
+      <div className="flex-1 min-h-[300px] max-h-[440px] relative mx-2 rounded-[64px] overflow-hidden border-[6px] border-[#1b1c1f] shadow-[inset_0_0_60px_rgba(0,0,0,.55)]"
+        style={{
+          background:
+            "radial-gradient(120% 90% at 50% 40%, #1f6a45 0%, #14päd 60%, #0e3b27 100%)".replace("päd", "4a32"),
+        }}
+      >
+        {/* trump badge */}
+        <div className="absolute top-2 left-2 z-20 flex items-center gap-1 rounded-lg bg-bg/85 border border-brand/40 px-2 py-1">
           <span
-            className={`h-8 w-8 rounded-lg bg-s2 border border-line flex items-center justify-center text-[17px] ${
-              trump && RED.includes(trump) ? "text-down" : "text-t1"
-            }`}
+            className="text-[18px] leading-none"
+            style={{ color: trump ? suitColor(trump) : "#5e5e68" }}
           >
             {trump ?? "?"}
           </span>
+          <span className="text-[9px] font-extrabold text-brand tracking-wider">HOKM</span>
         </div>
 
-        <div className="text-center">
-          <div className="mono text-[20px] font-extrabold leading-none">
+        {/* score */}
+        <div className="absolute top-2 right-2 z-20 rounded-lg bg-bg/85 border border-line px-2 py-1 text-center">
+          <div className="mono text-[13px] font-extrabold leading-none whitespace-nowrap">
             <span className="text-brand">{score[0]}</span>
-            <span className="text-t3 mx-1.5">–</span>
+            <span className="text-t3 mx-1">–</span>
             <span className="text-t2">{score[1]}</span>
           </div>
-          <div className="text-[9px] text-t3 mt-0.5">hands to {HANDS_TO_WIN}</div>
+          <div className="text-[8px] text-t3 mt-0.5">to {HANDS_TO_WIN}</div>
         </div>
 
-        <div className="text-right">
-          <div className="mono text-[15px] font-bold">
-            <span className="text-up">{tricks[0]}</span>
-            <span className="text-t3 mx-1">:</span>
-            <span className="text-down">{tricks[1]}</span>
+        {/* opponents */}
+        <div className="absolute top-1 left-1/2 -translate-x-1/2 flex flex-col items-center">
+          <div className="scale-[.62] origin-top">
+            <CardFan count={hands[2].length} />
           </div>
-          <div className="text-[9px] text-t3">tricks</div>
+          <Plaque seat={2} turn={turn} hakem={hakem} tricks={tricks[0]} />
         </div>
-      </div>
 
-      {/* table */}
-      <div className="flex-1 min-h-[260px] max-h-[380px] relative mx-3 rounded-2xl border border-line bg-s1/50 overflow-hidden">
-        {/* north — partner */}
-        <SeatBadge
-          seat={2}
-          turn={turn}
-          hakem={hakem}
-          count={hands[2].length}
-          className="absolute top-2 left-1/2 -translate-x-1/2"
-        />
-        <SeatBadge
-          seat={1}
-          turn={turn}
-          hakem={hakem}
-          count={hands[1].length}
-          className="absolute left-2 top-1/2 -translate-y-1/2"
-        />
-        <SeatBadge
-          seat={3}
-          turn={turn}
-          hakem={hakem}
-          count={hands[3].length}
-          className="absolute right-2 top-1/2 -translate-y-1/2"
-        />
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center">
+          <div className="scale-[.62] origin-left -ml-6">
+            <CardFan count={hands[1].length} vertical />
+          </div>
+          <Plaque seat={1} turn={turn} hakem={hakem} tricks={tricks[1]} compact />
+        </div>
+
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center flex-row-reverse">
+          <div className="scale-[.62] origin-right -mr-6">
+            <CardFan count={hands[3].length} vertical />
+          </div>
+          <Plaque seat={3} turn={turn} hakem={hakem} tricks={tricks[1]} compact />
+        </div>
 
         {/* played cards */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative h-[176px] w-[176px]">
-            <Slot card={played(2)} win={lastWinner === 2} className="top-0 left-1/2 -translate-x-1/2" />
-            <Slot card={played(1)} win={lastWinner === 1} className="left-0 top-1/2 -translate-y-1/2" />
-            <Slot card={played(3)} win={lastWinner === 3} className="right-0 top-1/2 -translate-y-1/2" />
-            <Slot card={played(0)} win={lastWinner === 0} className="bottom-0 left-1/2 -translate-x-1/2" />
+          <div className="relative h-[164px] w-[164px]">
+            <Slot card={played(2)} win={lastWinner === 2} tilt={4} className="top-0 left-1/2 -translate-x-1/2" />
+            <Slot card={played(1)} win={lastWinner === 1} tilt={-8} className="left-1 top-1/2 -translate-y-1/2" />
+            <Slot card={played(3)} win={lastWinner === 3} tilt={8} className="right-1 top-1/2 -translate-y-1/2" />
+            <Slot card={played(0)} win={lastWinner === 0} tilt={-3} className="bottom-0 left-1/2 -translate-x-1/2" />
           </div>
         </div>
 
-        {note && (
-          <div className="absolute bottom-2 inset-x-2 text-center">
-            <span className="text-[11px] text-t2 bg-bg/70 rounded-full px-3 py-1">
-              {note}
+        {/* turn / message */}
+        {note && phase === "play" && (
+          <div className="absolute bottom-2 inset-x-0 text-center pointer-events-none">
+            <span
+              className={`text-[11px] font-bold rounded-full px-3 py-1 ${
+                myTurn
+                  ? "bg-brand text-bg"
+                  : "bg-bg/70 text-t2"
+              }`}
+            >
+              {myTurn ? "Your turn" : note}
             </span>
           </div>
         )}
@@ -345,12 +345,12 @@ export function Hokm({ onBack }: { onBack: () => void }) {
       {phase === "trump" && hakem === 0 && (
         <div className="px-3 pt-3 pb-1 shrink-0 mt-auto">
           <div className="rounded-2xl border border-brand/40 bg-brand/8 p-3">
-            <div className="text-[12px] font-bold text-center mb-2">
-              Your five — call the trump
+            <div className="text-[12px] font-bold text-center mb-2.5">
+              You are Hakem — name the trump
             </div>
-            <div className="flex justify-center gap-1.5 mb-3">
+            <div className="flex justify-center gap-1 mb-3">
               {sortHand(peek).map((c) => (
-                <PlayCard key={cardId(c)} card={c} size="sm" />
+                <CardFace key={cardId(c)} card={c} w={38} />
               ))}
             </div>
             <div className="grid grid-cols-4 gap-2">
@@ -358,9 +358,8 @@ export function Hokm({ onBack }: { onBack: () => void }) {
                 <button
                   key={s}
                   onClick={() => callTrump(s)}
-                  className={`h-12 rounded-xl bg-s2 border border-line active:bg-s3 text-[22px] ${
-                    RED.includes(s) ? "text-down" : "text-t1"
-                  }`}
+                  className="h-14 rounded-xl bg-[#f4f4f2] border border-[#c9c9c4] active:brightness-90 text-[26px] font-bold"
+                  style={{ color: suitColor(s) }}
                 >
                   {s}
                 </button>
@@ -370,44 +369,29 @@ export function Hokm({ onBack }: { onBack: () => void }) {
         </div>
       )}
 
-      {/* your hand */}
+      {/* your hand, fanned */}
       {phase !== "trump" && (
-        <div className="pt-3 pb-1 shrink-0 mt-auto">
-          <div className="flex items-center justify-between px-4 pb-1.5">
+        <div className="shrink-0 mt-auto pt-1">
+          <div className="flex items-center justify-between px-4 pb-1">
+            <span className="mono text-[10px] text-t3">
+              {tricks[0]} : {tricks[1]} tricks
+            </span>
             <span className="text-[10px] text-t3">
-              Your hand · {hands[0].length}
-            </span>
-            <span
-              className={`text-[10px] font-bold ${
-                myTurn ? "text-brand" : "text-t3"
-              }`}
-            >
-              {myTurn ? "your turn" : SEAT_NAMES[turn] + " is thinking…"}
+              {hands[0].length} cards
             </span>
           </div>
-          <div className="hscroll flex gap-1 px-4 pb-1">
-            {hands[0].map((c) => {
-              const ok = myTurn && legalIds.has(cardId(c));
-              return (
-                <button
-                  key={cardId(c)}
-                  disabled={!ok}
-                  onClick={() => play(0, c)}
-                  className={`shrink-0 transition-transform ${
-                    ok ? "active:-translate-y-1.5" : "opacity-35"
-                  }`}
-                >
-                  <PlayCard card={c} dim={!ok} />
-                </button>
-              );
-            })}
-          </div>
+          <HandFan
+            cards={hands[0]}
+            legal={legalIds}
+            enabled={myTurn}
+            onPlay={(c) => play(0, c)}
+          />
         </div>
       )}
 
       {/* hand / game result */}
       {(phase === "hand" || phase === "game") && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 px-4 pb-6">
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/75 px-4 pb-6">
           <Panel className="w-full max-w-md p-5 slideup text-center">
             <div className="text-[40px] leading-none pop">
               {phase === "game"
@@ -418,7 +402,7 @@ export function Hokm({ onBack }: { onBack: () => void }) {
                   ? "✅"
                   : "❌"}
             </div>
-            <div className="text-[20px] font-extrabold mt-2">
+            <div className="text-[19px] font-extrabold mt-2">
               {phase === "game"
                 ? score[0] > score[1]
                   ? "You win the game"
@@ -449,41 +433,47 @@ export function Hokm({ onBack }: { onBack: () => void }) {
 
 /* ---------- pieces ---------- */
 
-function SeatBadge({
+function Plaque({
   seat,
   turn,
   hakem,
-  count,
-  className,
+  tricks,
+  compact,
 }: {
   seat: Seat;
   turn: Seat;
   hakem: Seat;
-  count: number;
-  className?: string;
+  tricks: number;
+  compact?: boolean;
 }) {
   const active = turn === seat;
   const mate = team(seat) === 0;
   return (
-    <div className={`flex flex-col items-center gap-1 ${className}`}>
+    <div
+      className={`flex items-center gap-1.5 rounded-lg border px-1.5 py-1 backdrop-blur transition-colors ${
+        active
+          ? "bg-brand/25 border-brand"
+          : "bg-bg/70 border-line"
+      } ${compact ? "flex-col gap-0.5 px-1" : ""}`}
+    >
       <div
-        className={`h-9 w-9 rounded-full flex items-center justify-center text-[12px] font-bold border transition-colors ${
-          active
-            ? "bg-brand text-bg border-brand"
-            : mate
-              ? "bg-brand/15 text-brand border-brand/40"
-              : "bg-s2 text-t2 border-line"
+        className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-extrabold ${
+          mate ? "bg-brand/25 text-brand" : "bg-s3 text-t2"
         }`}
       >
         {SEAT_NAMES[seat][0]}
       </div>
-      <div className="flex items-center gap-1">
-        <span className="text-[9px] text-t3">{SEAT_NAMES[seat]}</span>
-        {hakem === seat && (
-          <span className="text-[8px] font-bold text-warn">HAKEM</span>
-        )}
+      <div className={compact ? "text-center" : ""}>
+        <div className="text-[9px] font-bold leading-none">
+          {SEAT_NAMES[seat]}
+        </div>
+        <div className="flex items-center gap-1 mt-0.5">
+          {hakem === seat && (
+            <span className="text-[7px] font-extrabold text-warn">HAKEM</span>
+          )}
+          <span className="mono text-[8px] text-t3">{tricks}</span>
+        </div>
       </div>
-      <span className="mono text-[8px] text-t3">{count}</span>
     </div>
   );
 }
@@ -491,50 +481,81 @@ function SeatBadge({
 function Slot({
   card,
   win,
+  tilt,
   className,
 }: {
   card?: Card;
   win: boolean;
+  tilt: number;
   className?: string;
 }) {
   return (
     <div className={`absolute ${className}`}>
       {card ? (
-        <div className={win ? "pop" : "slideup"}>
-          <PlayCard card={card} highlight={win} />
+        <div
+          className={win ? "pop" : "slideup"}
+          style={{ transform: `rotate(${tilt}deg)` }}
+        >
+          <CardFace card={card} w={44} glow={win} />
         </div>
       ) : (
-        <div className="h-[54px] w-[38px] rounded-md border border-dashed border-line/60" />
+        <div className="h-[62px] w-[44px] rounded-[6px] border border-dashed border-white/10" />
       )}
     </div>
   );
 }
 
-function PlayCard({
-  card,
-  size = "md",
-  dim,
-  highlight,
+/**
+ * The player's hand as an arc. Thirteen cards will not fit side by side on
+ * a phone, so they overlap and lift the way a real fan does — and the
+ * playable ones lift further so the legal move is obvious at a glance.
+ */
+function HandFan({
+  cards,
+  legal,
+  enabled,
+  onPlay,
 }: {
-  card: Card;
-  size?: "sm" | "md";
-  dim?: boolean;
-  highlight?: boolean;
+  cards: Card[];
+  legal: Set<string>;
+  enabled: boolean;
+  onPlay: (c: Card) => void;
 }) {
-  const red = RED.includes(card.s);
-  const box =
-    size === "sm" ? "h-[46px] w-[33px] text-[11px]" : "h-[54px] w-[38px] text-[13px]";
+  const n = cards.length;
+  if (n === 0) return <div className="h-[92px]" />;
+  const mid = (n - 1) / 2;
+  const step = n > 9 ? 26 : n > 6 ? 32 : 38;
+  const spread = 2.4;
+  const width = (n - 1) * step + 46;
+
   return (
-    <div
-      className={`${box} rounded-md flex flex-col items-center justify-center font-extrabold border ${
-        highlight
-          ? "bg-white border-brand ring-2 ring-brand"
-          : "bg-[#f4f4f2] border-[#d8d8d4]"
-      } ${dim ? "grayscale" : ""}`}
-      style={{ color: red ? "#d1242f" : "#16161a" }}
-    >
-      <span className="leading-none">{rankLabel(card.r)}</span>
-      <span className="leading-none mt-0.5">{card.s}</span>
+    <div className="w-full overflow-x-auto hscroll">
+      <div
+        className="relative mx-auto h-[96px]"
+        style={{ width: Math.max(width, 320) }}
+      >
+        {cards.map((c, i) => {
+          const ok = enabled && legal.has(cardId(c));
+          const off = i - mid;
+          return (
+            <button
+              key={cardId(c)}
+              disabled={!ok}
+              onClick={() => onPlay(c)}
+              className="absolute transition-transform"
+              style={{
+                left: `calc(50% + ${off * step}px - 23px)`,
+                bottom: ok ? 14 : 4,
+                transform: `rotate(${off * spread}deg)`,
+                transformOrigin: "bottom center",
+                zIndex: i,
+              }}
+            >
+              <CardFace card={c} w={46} dim={!ok} selected={ok} />
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

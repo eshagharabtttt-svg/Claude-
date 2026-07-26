@@ -3,6 +3,7 @@ import { Chart } from "../../components/Chart";
 import { BalancePill, Button, Card } from "../../components/ui";
 import { fmtPrice, getFeed, type AssetId } from "../../lib/feed";
 import { usePlayer } from "../../lib/store";
+import { useFullScreen } from "../../lib/chrome";
 import { GameHeader } from "./GameHeader";
 
 const FIELD = 50;
@@ -35,6 +36,7 @@ function buzz(ms: number | number[]) {
 }
 
 export function Royale({ onBack }: { onBack: () => void }) {
+  useFullScreen();
   const { p, credit, recordResult } = usePlayer();
   const [stage, setStage] = useState<Stage>("lobby");
   const [stake, setStake] = useState(100);
@@ -186,7 +188,7 @@ export function Royale({ onBack }: { onBack: () => void }) {
   /* ---------------- lobby ---------------- */
   if (stage === "lobby") {
     return (
-      <div className="vscroll h-full pb-28">
+      <div className="vscroll h-full pb-6">
         <GameHeader title="Battle Royale" onBack={onBack}>
           <BalancePill value={p.balance} />
         </GameHeader>
@@ -245,7 +247,7 @@ export function Royale({ onBack }: { onBack: () => void }) {
   if (stage === "over") {
     const won = place === 1;
     return (
-      <div className="vscroll h-full pb-28">
+      <div className="vscroll h-full pb-6">
         <GameHeader title="Battle Royale" onBack={onBack}>
           <BalancePill value={p.balance} />
         </GameHeader>
@@ -283,7 +285,7 @@ export function Royale({ onBack }: { onBack: () => void }) {
   const delta = lock ? price - lock : 0;
 
   return (
-    <div className="h-full flex flex-col pb-[68px]">
+    <div className="h-full flex flex-col pb-1">
       <GameHeader title={`Round ${round}`} onBack={onBack}>
         <BalancePill value={p.balance} />
       </GameHeader>

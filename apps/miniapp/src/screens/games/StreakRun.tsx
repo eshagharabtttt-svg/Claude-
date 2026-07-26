@@ -3,6 +3,7 @@ import { Chart, type Marker } from "../../components/Chart";
 import { BalancePill, Button, Card } from "../../components/ui";
 import { fmtPrice, getFeed, type AssetId } from "../../lib/feed";
 import { usePlayer } from "../../lib/store";
+import { useFullScreen } from "../../lib/chrome";
 import { GameHeader } from "./GameHeader";
 
 const ASSETS: AssetId[] = ["ETH", "BTC", "SOL"];
@@ -36,6 +37,7 @@ function buzz(ms: number | number[]) {
 }
 
 export function StreakRun({ onBack }: { onBack: () => void }) {
+  useFullScreen();
   const { p, credit, spendEnergy, recordResult } = usePlayer();
   const [asset, setAsset] = useState<AssetId>("ETH");
   const [stake, setStake] = useState(100);
@@ -139,7 +141,7 @@ export function StreakRun({ onBack }: { onBack: () => void }) {
   );
 
   return (
-    <div className="h-full flex flex-col pb-[68px]">
+    <div className="h-full flex flex-col pb-1">
       <GameHeader title="Streak Run" onBack={onBack}>
         <BalancePill value={p.balance} />
       </GameHeader>

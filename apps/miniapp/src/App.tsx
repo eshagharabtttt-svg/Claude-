@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PlayerProvider } from "./lib/store";
+import { ChromeProvider, useChrome } from "./lib/chrome";
 import { Home } from "./screens/Home";
 import { Play } from "./screens/Play";
 import { Duel } from "./screens/Duel";
@@ -17,6 +18,16 @@ const NAV: { id: Tab; icon: string; label: string }[] = [
 ];
 
 export default function App() {
+  return (
+    <PlayerProvider>
+      <ChromeProvider>
+        <Shell />
+      </ChromeProvider>
+    </PlayerProvider>
+  );
+}
+
+function Shell() {
   const [tab, setTab] = useState<Tab>("home");
   // Tapping the active tab should return it to its root screen, the way
   // every native tab bar behaves. Bumping the key remounts the section.
@@ -27,15 +38,17 @@ export default function App() {
     setTab(next);
   };
 
+  const { navHidden } = useChrome();
+
   return (
-    <PlayerProvider>
-      <div className="mx-auto h-full max-w-[480px] relative bg-bg">
+    <div className="mx-auto h-full max-w-[480px] relative bg-bg">
         {tab === "home" && <Home go={select} />}
         {tab === "play" && <Play key={resetSeq} />}
         {tab === "duel" && <Duel key={resetSeq} />}
         {tab === "markets" && <Markets key={resetSeq} />}
         {tab === "tasks" && <Tasks />}
 
+      {!navHidden && (
         <nav className="absolute bottom-0 inset-x-0 h-[68px] bg-s1/95 backdrop-blur border-t border-line flex items-center px-2">
           {NAV.map((n) => {
             const on = tab === n.id;
@@ -63,7 +76,7 @@ export default function App() {
             );
           })}
         </nav>
-      </div>
-    </PlayerProvider>
+      )}
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import { BalancePill } from "../components/ui";
 import { GameHeader } from "./games/GameHeader";
 import { fmtPrice, getFeed, mmss, type AssetId } from "../lib/feed";
 import { usePlayer } from "../lib/store";
+import { useFullScreen } from "../lib/chrome";
 
 const ASSETS: AssetId[] = ["ETH", "BTC", "TON", "SOL"];
 const STAKES = [50, 100, 250, 500];
@@ -36,6 +37,7 @@ function buzz(ms: number | number[]) {
 }
 
 export function QuickPlay({ onBack }: { onBack: () => void }) {
+  useFullScreen();
   const { p, credit, spendEnergy, recordResult } = usePlayer();
   const [asset, setAsset] = useState<AssetId>("ETH");
   const [phase, setPhase] = useState<Phase>("betting");
@@ -173,7 +175,7 @@ export function QuickPlay({ onBack }: { onBack: () => void }) {
   const canBet = phase === "betting" && !bet;
 
   return (
-    <div className="h-full flex flex-col pb-[68px]">
+    <div className="h-full flex flex-col pb-1">
       <GameHeader title="Quick Play" onBack={onBack}>
         <BalancePill value={p.balance} />
       </GameHeader>
