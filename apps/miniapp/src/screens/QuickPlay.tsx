@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Chart, type Marker } from "../components/Chart";
-import { BalancePill, Button, Card, Chip, LiveBadge } from "../components/ui";
-import { assetLabel, fmtPrice, getFeed, mmss, type AssetId } from "../lib/feed";
+import { BalancePill } from "../components/ui";
+import { fmtPrice, getFeed, mmss, type AssetId } from "../lib/feed";
 import { usePlayer } from "../lib/store";
 
 const ASSETS: AssetId[] = ["ETH", "BTC", "TON", "SOL"];
@@ -14,12 +14,10 @@ const RESULT_HOLD = 6_000;
 
 type Phase = "betting" | "locked" | "result";
 type Side = "up" | "down";
-
-type Bet = { side: Side; stake: number };
+type Bet = { side: Side; stake: number; entry: number };
 
 type Outcome = {
   side: Side;
-  stake: number;
   won: boolean;
   payout: number;
   lock: number;
@@ -42,17 +40,12 @@ export function QuickPlay() {
   const [phase, setPhase] = useState<Phase>("betting");
   const [left, setLeft] = useState(BET_WINDOW);
   const [price, setPrice] = useState(getFeed("ETH").price);
+  const [source, setSource] = useState(getFeed("ETH").source);
   const [lockPrice, setLockPrice] = useState<number | null>(null);
   const [bet, setBet] = useState<Bet | null>(null);
   const [stake, setStake] = useState(100);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
-  const [history, setHistory] = useState<Side[]>([
-    "up",
-    "down",
-    "up",
-    "up",
-    "down",
-  ]);
+  const [history, setHistory] = useState<Side[]>(["up", "down", "up", "up"]);
   const [pools, setPools] = useState({ up: 1800, down: 1400 });
 
   const betRef = useRef<Bet | null>(null);
@@ -63,7 +56,11 @@ export function QuickPlay() {
   useEffect(() => {
     const f = getFeed(asset);
     setPrice(f.price);
-    return f.sub((t) => setPrice(t.p));
+    setSource(f.source);
+    return f.sub((t) => {
+      setPrice(t.p);
+      setSource(f.source);
+    });
   }, [asset]);
 
   // round cycle
@@ -99,17 +96,11 @@ export function QuickPlay() {
               if (b) {
                 const total = pools.up + pools.down + b.stake;
                 const mine = (b.side === "up" ? pools.up : pools.down) + b.stake;
-                const mult = (total * 0.97) / mine;
                 const won = b.side === winner;
-                const payout = won ? Math.round(b.stake * mult) : 0;
-                setOutcome({
-                  side: b.side,
-                  stake: b.stake,
-                  won,
-                  payout,
-                  lock,
-                  close,
-                });
+                const payout = won
+                  ? Math.round((b.stake * (total * 0.97)) / mine)
+                  : 0;
+                setOutcome({ side: b.side, won, payout, lock, close });
                 if (won) credit(payout, "Round win");
                 recordResult(won, won ? 25 : -5);
                 buzz(won ? [30, 60, 30] : 120);
@@ -150,7 +141,7 @@ export function QuickPlay() {
     if (p.balance < stake) return;
     if (!spendEnergy(1)) return;
     credit(-stake, side === "up" ? "Bet UP" : "Bet DOWN");
-    setBet({ side, stake });
+    setBet({ side, stake, entry: getFeed(asset).price });
     buzz(35);
   };
 
@@ -159,89 +150,150 @@ export function QuickPlay() {
   const multUp = ((total * 0.97) / pools.up).toFixed(2);
   const multDown = ((total * 0.97) / pools.down).toFixed(2);
   const secs = Math.max(0, Math.ceil(left / 1000));
-  const urgent = phase === "betting" && secs <= 5;
+  const urgent = phase !== "result" && secs <= 5;
 
-  const delta = lockPrice ? price - lockPrice : 0;
-  const lines: Marker[] = lockPrice
-    ? [{ price: lockPrice, color: "#a2a2ac", title: "LOCK", dashed: true }]
-    : [];
+  const ref = lockPrice ?? bet?.entry ?? null;
+  const delta = ref ? price - ref : 0;
+  const tone = ref ? (delta >= 0 ? "up" : "down") : "brand";
+
+  const lines: Marker[] = useMemo(() => {
+    const out: Marker[] = [];
+    if (bet) out.push({ price: bet.entry, color: "#f5a524", title: "ENTRY" });
+    if (lockPrice)
+      out.push({
+        price: lockPrice,
+        color: "#8a8a93",
+        title: "LOCK",
+        dashed: true,
+      });
+    return out;
+  }, [bet, lockPrice]);
+
+  const canBet = phase === "betting" && !bet;
 
   return (
-    <div className="vscroll h-full pb-28">
-      <header className="flex items-center justify-between px-4 pt-4 pb-3">
-        <div>
-          <h1 className="text-[26px] font-extrabold leading-tight">Quick Play</h1>
-          <p className="text-t3 text-xs mt-0.5">Call it, then wait 30 seconds</p>
+    <div className="h-full flex flex-col pb-[68px]">
+      {/* header */}
+      <header className="flex items-center justify-between px-4 pt-4 pb-3 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="hscroll flex gap-1.5">
+            {ASSETS.map((a) => (
+              <button
+                key={a}
+                onClick={() => setAsset(a)}
+                className={`shrink-0 h-8 px-3 rounded-lg text-[12px] font-bold transition-colors ${
+                  a === asset ? "bg-t1 text-bg" : "bg-s2 text-t3"
+                }`}
+              >
+                {a}
+              </button>
+            ))}
+          </div>
         </div>
         <BalancePill value={p.balance} />
       </header>
 
-      <div className="hscroll flex gap-2 px-4 pb-4">
-        {ASSETS.map((a) => (
-          <Chip key={a} active={a === asset} onClick={() => setAsset(a)}>
-            {a}
-          </Chip>
-        ))}
+      {/* price + timer */}
+      <div className="flex items-end justify-between px-4 pb-2 shrink-0">
+        <div>
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                source === "binance" ? "bg-up live-dot" : "bg-warn"
+              }`}
+            />
+            <span className="text-[10px] text-t3">
+              {asset}/USDT · {source === "binance" ? "Binance" : "simulated"}
+            </span>
+          </div>
+          <div className="mono text-[34px] font-bold leading-none mt-1">
+            {fmtPrice(price, asset)}
+          </div>
+          {ref && (
+            <div
+              className={`mono text-[13px] font-bold mt-1 ${
+                delta >= 0 ? "text-up" : "text-down"
+              }`}
+            >
+              {delta >= 0 ? "▲" : "▼"} {Math.abs(delta).toFixed(2)}
+            </div>
+          )}
+        </div>
+
+        <div className="text-right">
+          <div className="text-[10px] text-t3">
+            {phase === "betting"
+              ? "Betting closes in"
+              : phase === "locked"
+                ? "Result in"
+                : "Next round"}
+          </div>
+          <div
+            className={`mono text-[30px] font-bold leading-none ${
+              urgent ? "text-down" : phase === "locked" ? "text-warn" : "text-brand"
+            }`}
+          >
+            {phase === "result" ? "--" : mmss(left)}
+          </div>
+        </div>
       </div>
 
-      <div className="px-4">
-        <Card className="overflow-hidden">
-          <div className="flex items-start justify-between p-4 pb-2">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[15px] font-bold">{asset}/USDT</span>
-                <LiveBadge />
-              </div>
-              <div className="mono text-[30px] font-bold mt-1 leading-none">
-                {fmtPrice(price, asset)}
-              </div>
-              <div className="text-t3 text-[11px] mt-1">{assetLabel(asset)}</div>
-            </div>
+      {/* chart fills whatever is left */}
+      <div className="flex-1 min-h-[180px] relative">
+        <Chart asset={asset} lines={lines} tone={tone} />
 
-            <div className="text-right">
-              <div className="text-[11px] text-t3 mb-1">
-                {phase === "betting"
-                  ? "Betting closes"
-                  : phase === "locked"
-                    ? "Until result"
-                    : "Next round"}
-              </div>
+        {outcome && (
+          <div className="absolute inset-x-4 top-3 slideup">
+            <div
+              className={`rounded-2xl border px-4 py-3 text-center backdrop-blur ${
+                outcome.won
+                  ? "border-up/50 bg-up/12"
+                  : "border-down/50 bg-down/12"
+              }`}
+            >
               <div
-                className={`mono text-[28px] font-bold leading-none ${
-                  urgent
-                    ? "text-down"
-                    : phase === "locked"
-                      ? "text-warn"
-                      : "text-brand"
+                className={`text-[19px] font-extrabold tracking-wide ${
+                  outcome.won ? "text-up" : "text-down"
                 }`}
               >
-                {phase === "result" ? "--" : mmss(left)}
+                {outcome.won ? "YOU WON" : "YOU LOST"}
               </div>
-              {lockPrice && (
-                <div
-                  className={`mono text-[12px] mt-1.5 font-bold ${
-                    delta >= 0 ? "text-up" : "text-down"
-                  }`}
-                >
-                  {delta >= 0 ? "▲" : "▼"} {Math.abs(delta).toFixed(2)}
+              {outcome.won ? (
+                <div className="mono text-brand text-[22px] font-bold mt-0.5">
+                  +{outcome.payout.toLocaleString("en-US")} ◈
+                </div>
+              ) : (
+                <div className="mono text-t2 text-[12px] mt-1">
+                  {fmtPrice(outcome.lock, asset)} →{" "}
+                  {fmtPrice(outcome.close, asset)}
                 </div>
               )}
             </div>
           </div>
+        )}
+      </div>
 
-          <Chart
-            asset={asset}
-            height={200}
-            lines={lines}
-            tone={lockPrice ? (delta >= 0 ? "up" : "down") : "brand"}
-          />
+      {/* pool + recent */}
+      <div className="px-4 pt-3 shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="mono text-[11px] font-bold text-up w-8">{upPct}%</span>
+          <div className="flex-1 h-1.5 rounded-full bg-down/30 overflow-hidden">
+            <div
+              className="bg-up h-full transition-all duration-500"
+              style={{ width: `${upPct}%` }}
+            />
+          </div>
+          <span className="mono text-[11px] font-bold text-down w-8 text-right">
+            {100 - upPct}%
+          </span>
+        </div>
 
-          <div className="flex items-center gap-1.5 px-4 py-3 border-t border-line">
-            <span className="text-[11px] text-t3 mr-1">Recent</span>
-            {history.map((h, i) => (
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center gap-1">
+            {history.slice(0, 6).map((h, i) => (
               <span
                 key={i}
-                className={`h-5 w-5 rounded-md text-[10px] font-bold flex items-center justify-center ${
+                className={`h-4 w-4 rounded text-[9px] font-bold flex items-center justify-center ${
                   h === "up" ? "bg-up/15 text-up" : "bg-down/15 text-down"
                 }`}
               >
@@ -249,158 +301,73 @@ export function QuickPlay() {
               </span>
             ))}
           </div>
-        </Card>
-      </div>
-
-      {/* pool */}
-      <div className="px-4 mt-3">
-        <div className="flex justify-between text-[11px] mb-1.5">
-          <span className="text-up font-bold mono">{upPct}% UP</span>
-          <span className="text-down font-bold mono">{100 - upPct}% DOWN</span>
-        </div>
-        <div className="h-2 rounded-full bg-down/25 overflow-hidden flex">
-          <div
-            className="bg-up h-full transition-all duration-500"
-            style={{ width: `${upPct}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-[11px] text-t3 mt-1.5 mono">
-          <span>{pools.up.toLocaleString("en-US")} ◈</span>
-          <span>pool {total.toLocaleString("en-US")} ◈</span>
-          <span>{pools.down.toLocaleString("en-US")} ◈</span>
+          <span className="mono text-[10px] text-t3">
+            pool {total.toLocaleString("en-US")} ◈
+          </span>
         </div>
       </div>
 
       {/* stake */}
-      <div className="px-4 mt-4">
-        <div className="text-[12px] text-t2 mb-2">Stake</div>
-        <div className="hscroll flex gap-2">
-          {STAKES.map((s) => (
-            <Chip key={s} active={s === stake} onClick={() => setStake(s)}>
-              <span className="mono">{s}</span> ◈
-            </Chip>
-          ))}
-          <Chip
-            active={stake === p.balance}
-            onClick={() => setStake(Math.max(50, Math.floor(p.balance)))}
+      <div className="hscroll flex gap-2 px-4 pt-3 shrink-0">
+        {STAKES.map((s) => (
+          <button
+            key={s}
+            disabled={!canBet}
+            onClick={() => setStake(s)}
+            className={`shrink-0 h-9 px-4 rounded-full text-[13px] font-bold transition-colors disabled:opacity-40 ${
+              s === stake ? "bg-t1 text-bg" : "bg-s2 text-t2 border border-line"
+            }`}
           >
-            Max
-          </Chip>
-        </div>
+            <span className="mono">{s}</span> ◈
+          </button>
+        ))}
       </div>
 
-      {/* actions */}
-      <div className="px-4 mt-4 grid grid-cols-2 gap-3">
-        <button
-          disabled={phase !== "betting" || !!bet}
-          onClick={() => place("up")}
-          className={`h-[86px] rounded-2xl border-2 flex flex-col items-center justify-center gap-0.5 transition-all disabled:opacity-40 ${
-            bet?.side === "up"
-              ? "bg-up/25 border-up"
-              : "bg-up/10 border-up/40 active:bg-up/20"
-          }`}
-        >
-          <span className="text-up text-[22px] leading-none">▲</span>
-          <span className="text-up font-extrabold text-[17px]">UP</span>
-          <span className="mono text-up/70 text-[12px] font-bold">×{multUp}</span>
-        </button>
-
-        <button
-          disabled={phase !== "betting" || !!bet}
-          onClick={() => place("down")}
-          className={`h-[86px] rounded-2xl border-2 flex flex-col items-center justify-center gap-0.5 transition-all disabled:opacity-40 ${
-            bet?.side === "down"
-              ? "bg-down/25 border-down"
-              : "bg-down/10 border-down/40 active:bg-down/20"
-          }`}
-        >
-          <span className="text-down text-[22px] leading-none">▼</span>
-          <span className="text-down font-extrabold text-[17px]">DOWN</span>
-          <span className="mono text-down/70 text-[12px] font-bold">
-            ×{multDown}
-          </span>
-        </button>
-      </div>
-
-      <div className="px-4 mt-3 text-center text-[12px] text-t3">
+      {/* hint */}
+      <div className="text-center text-[12px] text-t3 px-4 pt-3 shrink-0">
         {bet ? (
           <span className="text-t2">
-            Bet placed · <span className="mono">{bet.stake}</span> ◈ on{" "}
+            <span className="mono">{bet.stake}</span> ◈ on{" "}
             <span className={bet.side === "up" ? "text-up" : "text-down"}>
               {bet.side === "up" ? "UP" : "DOWN"}
-            </span>
+            </span>{" "}
+            at <span className="mono">{fmtPrice(bet.entry, asset)}</span>
           </span>
         ) : phase === "betting" ? (
-          <>
-            Each bet costs 1 energy · you have {p.energy}/{p.energyMax}
-          </>
+          <>ⓘ Call where the price lands 30 seconds from now</>
         ) : (
-          "Betting closed — waiting for the result"
+          "Betting closed — watching the price"
         )}
       </div>
 
-      {/* result */}
-      {outcome && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 px-4 pb-6">
-          <Card className="w-full max-w-md p-5 slideup">
-            <div className="text-center">
-              <div
-                className={`text-[44px] leading-none pop ${
-                  outcome.won ? "text-up" : "text-down"
-                }`}
-              >
-                {outcome.won ? "🏆" : "✕"}
-              </div>
-              <div
-                className={`text-[24px] font-extrabold mt-2 ${
-                  outcome.won ? "text-up" : "text-down"
-                }`}
-              >
-                {outcome.won ? "You won!" : "You lost"}
-              </div>
-              {outcome.won && (
-                <div className="mono text-brand text-[30px] font-bold mt-1">
-                  +{outcome.payout.toLocaleString("en-US")} ◈
-                </div>
-              )}
-            </div>
+      {/* actions */}
+      <div className="grid grid-cols-2 gap-3 px-4 pt-3 shrink-0">
+        <button
+          disabled={!canBet}
+          onClick={() => place("up")}
+          className={`h-[62px] rounded-2xl flex items-center justify-center gap-2 font-extrabold text-[17px] transition-all disabled:opacity-35 ${
+            bet?.side === "up"
+              ? "bg-up text-bg"
+              : "bg-up/15 text-up border border-up/40 active:bg-up/30"
+          }`}
+        >
+          <span className="text-[19px]">↑</span> UP
+          <span className="mono text-[12px] opacity-70">×{multUp}</span>
+        </button>
 
-            <div className="mt-5 grid grid-cols-3 gap-3 rounded-2xl bg-s2 p-3">
-              <div>
-                <div className="text-[10px] text-t3">Lock price</div>
-                <div className="mono text-[13px] font-bold">
-                  {fmtPrice(outcome.lock, asset)}
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] text-t3">Close price</div>
-                <div className="mono text-[13px] font-bold">
-                  {fmtPrice(outcome.close, asset)}
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] text-t3">Change</div>
-                <div
-                  className={`mono text-[13px] font-bold ${
-                    outcome.close >= outcome.lock ? "text-up" : "text-down"
-                  }`}
-                >
-                  {outcome.close >= outcome.lock ? "+" : ""}
-                  {(outcome.close - outcome.lock).toFixed(2)}
-                </div>
-              </div>
-            </div>
-
-            <Button
-              className="w-full mt-4"
-              size="lg"
-              onClick={() => setOutcome(null)}
-            >
-              Next round
-            </Button>
-          </Card>
-        </div>
-      )}
+        <button
+          disabled={!canBet}
+          onClick={() => place("down")}
+          className={`h-[62px] rounded-2xl flex items-center justify-center gap-2 font-extrabold text-[17px] transition-all disabled:opacity-35 ${
+            bet?.side === "down"
+              ? "bg-down text-bg"
+              : "bg-down/15 text-down border border-down/40 active:bg-down/30"
+          }`}
+        >
+          <span className="text-[19px]">↓</span> DOWN
+          <span className="mono text-[12px] opacity-70">×{multDown}</span>
+        </button>
+      </div>
     </div>
   );
 }

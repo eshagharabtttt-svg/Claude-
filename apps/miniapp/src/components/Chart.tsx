@@ -16,16 +16,24 @@ export type Marker = {
   dashed?: boolean;
 };
 
+/** Ticks arrive faster than one per second; the chart keys on seconds. */
+const toPoint = (t: number, p: number) => ({
+  time: Math.floor(t / 1000) as UTCTimestamp,
+  value: p,
+});
+
 export function Chart({
   asset,
-  height = 220,
+  height,
   lines = [],
   tone = "brand",
+  fill = true,
 }: {
   asset: AssetId;
   height?: number;
   lines?: Marker[];
   tone?: "brand" | "up" | "down";
+  fill?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const chart = useRef<IChartApi | null>(null);
@@ -34,11 +42,15 @@ export function Chart({
 
   const color =
     tone === "up" ? "#16c784" : tone === "down" ? "#f0616d" : "#c6f73c";
+  const colorRef = useRef(color);
+  colorRef.current = color;
 
   useEffect(() => {
     if (!box.current) return;
-    const c = createChart(box.current, {
-      height,
+    const el = box.current;
+
+    const c = createChart(el, {
+      height: height ?? el.clientHeight,
       layout: {
         background: { color: "transparent" },
         textColor: "#5e5e68",
@@ -48,51 +60,59 @@ export function Chart({
       },
       grid: {
         vertLines: { visible: false },
-        horzLines: { color: "#1c1c1f" },
+        horzLines: { color: "#17171a" },
       },
-      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.15, bottom: 0.15 } },
+      rightPriceScale: {
+        borderVisible: false,
+        scaleMargins: { top: 0.12, bottom: 0.08 },
+      },
       timeScale: {
         borderVisible: false,
         timeVisible: true,
         secondsVisible: true,
-        rightOffset: 3,
+        rightOffset: 6,
+        barSpacing: 4,
       },
       crosshair: { horzLine: { visible: false }, vertLine: { visible: false } },
       handleScroll: false,
       handleScale: false,
     });
+
+    const c0 = colorRef.current;
     const s = c.addAreaSeries({
-      lineColor: color,
-      topColor: `${color}44`,
-      bottomColor: `${color}00`,
+      lineColor: c0,
+      topColor: fill ? `${c0}38` : "transparent",
+      bottomColor: `${c0}00`,
       lineWidth: 2,
-      priceLineVisible: false,
+      priceLineVisible: true,
+      priceLineColor: c0,
+      priceLineStyle: LineStyle.Dotted,
       lastValueVisible: true,
     });
 
     const feed = getFeed(asset);
-    s.setData(
-      feed.history().map((t) => ({
-        time: Math.floor(t.t / 1000) as UTCTimestamp,
-        value: t.p,
-      }))
-    );
+    const seed = () =>
+      s.setData(feed.history().map((t) => toPoint(t.t, t.p)));
+    seed();
     c.timeScale().fitContent();
 
     chart.current = c;
     series.current = s;
 
-    const off = feed.sub((t) =>
-      s.update({
-        time: Math.floor(t.t / 1000) as UTCTimestamp,
-        value: t.p,
-      })
-    );
+    const off = feed.sub((t) => {
+      // A reset means the feed swapped source (simulated → Binance) and
+      // the whole series has to be replaced, not appended to.
+      if (t.reset) seed();
+      else s.update(toPoint(t.t, t.p));
+    });
 
     const ro = new ResizeObserver(() => {
-      if (box.current) c.applyOptions({ width: box.current.clientWidth });
+      c.applyOptions({
+        width: el.clientWidth,
+        ...(height ? {} : { height: el.clientHeight }),
+      });
     });
-    ro.observe(box.current);
+    ro.observe(el);
 
     return () => {
       off();
@@ -102,13 +122,36 @@ export function Chart({
       series.current = null;
       priceLines.current = [];
     };
-  }, [asset, height, color]);
+  }, [asset, height, fill]);
 
-  // reference lines (lock price, duel shots)
+  // Tone changes recolor the existing series; rebuilding the chart here
+  // would drop the price lines and throw on the next update.
   useEffect(() => {
     const s = series.current;
     if (!s) return;
-    priceLines.current.forEach((l) => s.removePriceLine(l));
+    s.applyOptions({
+      lineColor: color,
+      topColor: fill ? `${color}38` : "transparent",
+      bottomColor: `${color}00`,
+      priceLineColor: color,
+    });
+  }, [color, fill]);
+
+  // reference lines (lock price, entry price, duel shots)
+  const linesKey = lines
+    .map((l) => `${l.title}:${l.price.toFixed(4)}:${l.color}`)
+    .join("|");
+
+  useEffect(() => {
+    const s = series.current;
+    if (!s) return;
+    for (const l of priceLines.current) {
+      try {
+        s.removePriceLine(l);
+      } catch {
+        // series was recreated under us; the old handle is already gone
+      }
+    }
     priceLines.current = lines.map((l) =>
       s.createPriceLine({
         price: l.price,
@@ -119,7 +162,15 @@ export function Chart({
         title: l.title,
       })
     );
-  }, [lines]);
+    // `lines` is rebuilt every render; the key is what actually changed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linesKey]);
 
-  return <div ref={box} className="w-full" style={{ height }} />;
+  return (
+    <div
+      ref={box}
+      className="w-full"
+      style={height ? { height } : { height: "100%" }}
+    />
+  );
 }
