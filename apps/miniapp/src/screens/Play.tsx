@@ -12,8 +12,9 @@ import { Limbo } from "./games/Limbo";
 import { Wheel } from "./games/Wheel";
 import { Mines } from "./games/Mines";
 import { Plinko } from "./games/Plinko";
+import { Ludo } from "./games/Ludo";
 
-type Game = "quick" | "streak" | "royale" | "crash" | "parlay" | "hokm" | "dice" | "limbo" | "wheel" | "mines" | "plinko";
+type Game = "quick" | "streak" | "royale" | "crash" | "parlay" | "hokm" | "dice" | "limbo" | "wheel" | "mines" | "plinko" | "ludo";
 
 type Tile = {
   id: Game;
@@ -129,6 +130,16 @@ const TILES: Tile[] = [
     ink: "#082f49",
   },
   {
+    id: "ludo",
+    name: "Ludo",
+    art: "🎯",
+    badge: "4 players",
+    players: 407,
+    from: "#b91c1c",
+    to: "#fb923c",
+    ink: "#fff7ed",
+  },
+  {
     id: "parlay",
     name: "Parlay",
     art: "🎫",
@@ -156,6 +167,7 @@ export function Play() {
   if (game === "wheel") return <Wheel onBack={back} />;
   if (game === "mines") return <Mines onBack={back} />;
   if (game === "plinko") return <Plinko onBack={back} />;
+  if (game === "ludo") return <Ludo onBack={back} />;
 
   return (
     <div className="vscroll h-full pb-28">
